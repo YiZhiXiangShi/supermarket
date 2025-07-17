@@ -21,11 +21,8 @@ router.beforeEach(async(to, from, next) => {
   // 获取token
   const hasToken = getToken()
 
-  // 暂时禁用token验证，直接放行
   next()
-  
-  // 如果需要启用token验证，请取消下面的注释
-  /*
+
   //判断是否有token
   /*
   if (hasToken) {

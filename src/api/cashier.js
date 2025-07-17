@@ -1,10 +1,21 @@
-// 收银管理相关接口
 import request from '@/utils/request'
 
-export function fetchCashierList(params) {
-  return request({
-    url: '/cashier/list',
-    method: 'get',
-    params
-  })
-} 
+const api_name='/cashier'
+
+export default{
+ 
+    find(barCode){
+        return request({
+            url:`${api_name}/find?barCode=`+barCode,
+            method:'get'
+        }) 
+    },
+    findAll(){
+        return request({
+            url:`${api_name}/findAll`,
+            method:'get'
+        }) 
+    },
+  
+
+}

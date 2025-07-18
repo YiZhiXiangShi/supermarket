@@ -84,10 +84,16 @@ export const constantRoutes = [
     meta: { title: '促销活动管理', icon: 'el-icon-present' },
     children: [
       {
-        path: 'list',
-        name: 'promotion-list',
-        component: () => import('@/views/promotion/index'),
-        meta: { title: '促销活动管理', icon: 'el-icon-present' }
+        path: 'type',
+        name: 'promotion-type-list',
+        component: () => import('@/views/promotionType/index.vue'),
+        meta: { title: '活动类型管理' }
+      },
+      {
+        path: 'product',
+        name: 'promotion-product-list',
+        component: () => import('@/views/promotionProduct/index.vue'),
+        meta: { title: '活动管理' }
       }
     ]
   },

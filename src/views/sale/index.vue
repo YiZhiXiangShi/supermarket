@@ -32,7 +32,7 @@
 
 <script>
 import * as echarts from 'echarts';
-import axios from 'axios';
+import { fetchSaleList } from '@/api/sale';
 
 export default {
   data() {
@@ -57,8 +57,19 @@ export default {
       };
 
       try {
-        const response = await axios.post('http://localhost:8080/sale', params);
-        const data = response.data.data;
+        // 使用统一的request封装
+        const response = await fetchSaleList(params);
+        console.log('接口原始返回：', response);
+        let data = response;
+        if (data && data.data && (data.data.xAxis || data.data.月份)) {
+          data = data.data;
+        }
+        const xAxis = data.xAxis || data.月份;
+        const yAxis = data.yAxis || data.销售量;
+        if (!xAxis || !yAxis) {
+          this.$message && this.$message.error('后端返回数据格式有误');
+          return;
+        }
 
         const chartDom = document.getElementById('main');
         const myChart = echarts.init(chartDom);
@@ -79,7 +90,7 @@ export default {
           xAxis: [
             {
               type: 'category',
-              data: data.xAxis,
+              data: xAxis,
               axisTick: {
                 alignWithLabel: true
               }
@@ -95,7 +106,7 @@ export default {
               name: '销售数据',
               type: 'bar',
               barWidth: '60%',
-              data: data.yAxis
+              data: yAxis
             }
           ]
         };
@@ -103,6 +114,7 @@ export default {
         myChart.setOption(option);
       } catch (error) {
         console.error('请求数据失败:', error);
+        this.$message && this.$message.error('请求数据失败');
       }
     }
   }

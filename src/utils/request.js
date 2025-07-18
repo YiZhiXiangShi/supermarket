@@ -30,13 +30,13 @@ service.interceptors.response.use(
     
     // 处理业务错误码
     if (res && typeof res.code !== 'undefined') {
-      if (res.code !== 0) {
+      if (res.code !== 0 && res.code !== 200) {
         Message({
-          message: res.msg || 'Error',
+          message: res.msg || res.message || 'Error',
           type: 'error',
           duration: 5 * 1000
         })
-        return Promise.reject(new Error(res.msg || 'Error'))
+        return Promise.reject(new Error(res.msg || res.message || 'Error'))
       }
     }
     

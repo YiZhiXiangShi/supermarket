@@ -24,7 +24,7 @@
       </el-form-item>
     </el-form>
     <div class="stock-content">
-      <el-table :data="tableData" border style="width: 800px; min-height: 300px;">
+      <el-table :data="tableData" border style="width: 800px; min-height: 300px;" :key="tableData.length">
         <el-table-column prop="serialNo" label="流水号" width="120" />
         <el-table-column prop="barcode" label="条码" width="180" />
         <el-table-column prop="productName" label="商品名称" width="180" />
@@ -43,7 +43,7 @@
 </template>
 
 <script>
-import XLSX from 'xlsx'
+// 动态导入XLSX库
 import request from '@/utils/request'
 
 export default {
@@ -68,19 +68,87 @@ export default {
       })
     },
     async handleUpload(file) {
-      const data = await this.getXlsxData(file)
-      this.tableData = this.translateField(data)
+      try {
+        if (!file.raw) {
+          throw new Error('文件对象无效')
+        }
+        const data = await this.getXlsxData(file)
+        if (!data || data.length === 0) {
+          throw new Error('Excel文件中没有有效数据')
+        }
+        const importedData = this.translateField(data)
+        if (!importedData || importedData.length === 0) {
+          throw new Error('数据转换后为空')
+        }
+        // 根据条码批量查数据库
+        const results = await Promise.all(importedData.map(item =>
+          request({
+            url: `/product/barcode/${item.barcode}`,
+            method: 'get'
+          }).then(res => ({
+            found: true,
+            data: res.data,
+            quantity: item.quantity
+          })).catch(() => ({ found: false, barcode: item.barcode }))
+        ))
+        // 只保留查到的商品
+        const validRows = results.filter(r => r.found && r.data).map(r => ({
+          serialNo: r.data.serialNo,
+          barcode: r.data.barcodeNo,
+          productName: r.data.productName,
+          unit: r.data.unit,
+          quantity: r.quantity || 1
+        }))
+        // 合并到现有表格（相同条码累加数量）
+        const barcodeMap = new Map()
+        this.tableData.forEach(item => {
+          barcodeMap.set(item.barcode, { ...item })
+        })
+        validRows.forEach(item => {
+          if (barcodeMap.has(item.barcode)) {
+            barcodeMap.get(item.barcode).quantity += item.quantity
+          } else {
+            barcodeMap.set(item.barcode, { ...item })
+          }
+        })
+        this.tableData = Array.from(barcodeMap.values())
+        this.$message.success(`成功导入 ${validRows.length} 条商品，未查到的条码已自动忽略`)
+      } catch (error) {
+        console.error('导入Excel文件时出错:', error)
+        this.$message.error('导入Excel文件失败: ' + error.message)
+      }
     },
     async getXlsxData(file) {
-      const dataBinary = await this.readFile(file)
-      const workBook = XLSX.read(dataBinary)
-      const workSheet = workBook.Sheets[workBook.SheetNames[0]]
-      const data = XLSX.utils.sheet_to_json(workSheet)
-      const newData = data.slice(0, data.length - 1)
-      return newData
+      try {
+        // 动态导入XLSX库
+        const XLSX = await import('xlsx')
+        
+        const dataBinary = await this.readFile(file)
+        
+        if (!XLSX || !XLSX.read) {
+          throw new Error('XLSX库未正确加载')
+        }
+        
+        const workBook = XLSX.read(dataBinary, { type: 'array' })
+        
+        if (!workBook.SheetNames || workBook.SheetNames.length === 0) {
+          throw new Error('Excel文件中没有找到工作表')
+        }
+        
+        const workSheet = workBook.Sheets[workBook.SheetNames[0]]
+        const data = XLSX.utils.sheet_to_json(workSheet)
+        
+        if (!data || data.length === 0) {
+          throw new Error('Excel文件中没有找到数据')
+        }
+        
+        return data
+      } catch (error) {
+        console.error('读取Excel文件时出错:', error)
+        throw error
+      }
     },
     translateField(data) {
-      const arr = []
       const cnToEn = {
         '流水号': 'serialNo',
         '条码': 'barcode',
@@ -88,14 +156,38 @@ export default {
         '单位': 'unit',
         '上货数量': 'quantity'
       }
-      data.forEach((item) => {
+      
+      // 用于合并相同条码的商品
+      const barcodeMap = new Map()
+      
+      data.forEach((item, index) => {
         const arrItem = {}
         Object.keys(item).forEach((key) => {
-          arrItem[cnToEn[key]] = item[key]
+          if (cnToEn[key]) {
+            arrItem[cnToEn[key]] = item[key]
+          }
         })
-        arr.push(arrItem)
+        
+        // 确保必要字段存在
+        if (!arrItem.barcode) {
+          return
+        }
+        
+        // 检查是否已存在相同条码的商品
+        if (barcodeMap.has(arrItem.barcode)) {
+          // 如果存在，增加数量
+          const existingItem = barcodeMap.get(arrItem.barcode)
+          existingItem.quantity += (parseInt(arrItem.quantity) || 1)
+        } else {
+          // 如果不存在，添加到Map中
+          barcodeMap.set(arrItem.barcode, {
+            ...arrItem,
+            quantity: parseInt(arrItem.quantity) || 1
+          })
+        }
       })
-      return arr
+      
+      return Array.from(barcodeMap.values())
     },
     async handleBarcodeEnter() {
       if (!this.barcode) return
@@ -105,8 +197,9 @@ export default {
           method: 'get'
         })
         if (res && res.data) {
-          const exist = this.tableData.find(item => item.barcode === res.data.barcode)
-          if (!exist) {
+          const existIndex = this.tableData.findIndex(item => item.barcode === res.data.barcodeNo)
+          if (existIndex === -1) {
+            // 商品不存在，添加新行
             this.tableData.push({
               serialNo: res.data.serialNo,
               barcode: res.data.barcodeNo,
@@ -114,8 +207,11 @@ export default {
               unit: res.data.unit,
               quantity: 1
             })
+            this.$message.success('商品已添加到表格')
           } else {
-            this.$message.warning('该商品已在表格中')
+            // 商品已存在，增加数量
+            this.tableData[existIndex].quantity += 1
+            this.$message.success(`商品数量已增加，当前数量：${this.tableData[existIndex].quantity}`)
           }
         } else {
           this.$message.error('未找到该商品')

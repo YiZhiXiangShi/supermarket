@@ -127,21 +127,6 @@ export const constantRoutes = [
       }
     ]
   },
-  {
-    path: '/ai',
-    component: Layout,
-    redirect: '/ai/index',
-    name: 'ai',
-    meta: { title: '智能AI', icon: 'el-icon-cpu' },
-    children: [
-      {
-        path: 'index',
-        name: 'ai-index',
-        component: () => import('@/views/ai/index.vue'),
-        meta: { title: '智能AI', icon: 'el-icon-cpu' }
-      }
-    ]
-  },
   // 404 page must be placed at the end !!!
   { path: '*', redirect: '/404', hidden: true }
 ]

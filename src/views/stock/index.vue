@@ -6,6 +6,8 @@
           v-model="barcode"
           placeholder="请扫描商品条码"
           style="width: 300px;"
+          @input="onBarcodeInput"
+          maxlength="13"
           @keyup.enter.native="handleBarcodeEnter"
         />
       </el-form-item>
@@ -51,6 +53,10 @@ export default {
     }
   },
   methods: {
+    onBarcodeInput(val) {
+      // 只允许输入数字，且最大13位
+      this.barcode = val.replace(/\D/g, '').slice(0, 13)
+    },
     readFile(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader()
@@ -81,15 +87,18 @@ export default {
           request({
             url: `/product/barcode/${item.barcode}`,
             method: 'get'
-          }).then(res => ({
-            found: true,
-            data: res.data,
-            quantity: item.quantity,
-            barcode: item.barcode
-          })).catch(() => ({ found: false, barcode: item.barcode }))
+          }).then(res => {
+            console.log('查商品结果:', res)
+            return {
+              found: !!(res && res.barcodeNo),
+              data: res,
+              quantity: item.quantity,
+              barcode: item.barcode
+            }
+          }).catch(() => ({ found: false, barcode: item.barcode }))
         ))
         // 只保留查到的商品
-        const validRows = results.filter(r => r.found && r.data).map(r => ({
+        const validRows = results.filter(r => r.found).map(r => ({
           serialNo: r.data.serialNo,
           barcode: r.data.barcodeNo,
           productName: r.data.productName,
@@ -201,15 +210,16 @@ export default {
           url: `/product/barcode/${this.barcode}`,
           method: 'get'
         })
-        if (res && res.data) {
-          const existIndex = this.tableData.findIndex(item => item.barcode === res.data.barcodeNo)
+        console.log('接口响应:', res)
+        if (res) {
+          const existIndex = this.tableData.findIndex(item => item.barcode === res.barcodeNo)
           if (existIndex === -1) {
             // 商品不存在，添加新行
             this.tableData.push({
-              serialNo: res.data.serialNo,
-              barcode: res.data.barcodeNo,
-              productName: res.data.productName,
-              unit: res.data.unit,
+              serialNo: res.serialNo,
+              barcode: res.barcodeNo,
+              productName: res.productName,
+              unit: res.unit,
               quantity: 1
             })
             this.$message.success('商品已添加到表格')

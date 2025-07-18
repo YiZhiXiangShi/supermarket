@@ -43,3 +43,9 @@ export function deletePromotionType(id) {
     method: 'delete'
   })
 } 
+export function fetchPromotionTypeList() {
+  return request({
+    url:'/api/promotion-types',
+    method: 'get'
+  })
+}

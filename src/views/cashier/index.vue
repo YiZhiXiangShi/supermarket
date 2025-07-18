@@ -82,7 +82,7 @@
 </template>
 
 <script>
-import cashierApi from '@/api/cashier'
+import { findAll, find } from '@/api/cashier'
 
 export default {
   data() {
@@ -109,7 +109,6 @@ export default {
     }
   },
   created() {
-    console.log('cashierApi', cashierApi)
     this.loadAll()
     this.initCashierInfo()
   },
@@ -122,7 +121,7 @@ export default {
     },
     async loadAll() {
       try {
-        const res = await cashierApi.findAll()
+        const res = await findAll()
         this.tableData = res.data || []
       } catch (e) {
         console.error('findAll异常', e)
@@ -136,7 +135,7 @@ export default {
         return
       }
       try {
-        const res = await cashierApi.find(this.barcode)
+        const res = await find(this.barcode)
         // 假设返回数据结构为 { data: {...} } 或 { data: null }
         this.tableData = res.data ? [res.data] : []
         if (!res.data) {
@@ -164,7 +163,6 @@ export default {
         this.$message.warning('实收金额不能小于总计金额')
         return
       }
-      
       // 这里可以调用结账接口
       this.$message.success('收银成功！')
       this.checkoutDialogVisible = false

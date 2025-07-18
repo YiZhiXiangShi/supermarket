@@ -22,34 +22,91 @@
 </template>
 
 <script>
+import { chat2 } from '@/api/ai'
+
 export default {
   name: 'AiIndex',
   data() {
     return {
       inputMsg: '',
+      chatId: 'chat_' + Date.now(), // 生成聊天会话ID
       messages: [
         { role: 'ai', content: '你好，我是智能AI助手，有什么可以帮您？' }
       ]
     }
   },
   methods: {
-    sendMsg() {
+    async sendMsg() {
       const content = this.inputMsg && this.inputMsg.trim()
       if (!content) return
+      
+      // 添加用户消息
       this.messages.push({ role: 'user', content })
       this.inputMsg = ''
-      // 模拟AI回复
-      setTimeout(() => {
-        this.messages.push({ role: 'ai', content: 'AI正在思考中...' })
-        this.scrollToBottom()
-        setTimeout(() => {
-          this.messages.pop()
-          this.messages.push({ role: 'ai', content: '这是AI的回复：' + content })
-          this.scrollToBottom()
-        }, 1000)
-      }, 500)
       this.scrollToBottom()
+      
+      // 添加AI思考中状态
+      this.messages.push({ role: 'ai', content: 'AI正在思考中...' })
+      this.scrollToBottom()
+      
+      try {
+        // 调用流式AI接口
+        const aiResponse = await this.chat2Stream(content, this.chatId)
+        // 移除思考中状态
+        this.messages.pop()
+        // 添加AI回复
+        this.messages.push({ role: 'ai', content: aiResponse || '抱歉，AI暂时无法回复' })
+        this.scrollToBottom()
+      } catch (error) {
+        // 移除思考中状态
+        this.messages.pop()
+        // 添加错误提示
+        this.messages.push({ role: 'ai', content: '抱歉，网络连接失败，请稍后重试' })
+        this.scrollToBottom()
+        console.error('AI接口调用失败:', error)
+      }
     },
+    
+    async chat2Stream(msg, chatId) {
+      try {
+        const response = await fetch(`/api/chat/v2?msg=${encodeURIComponent(msg)}&chatId=${encodeURIComponent(chatId)}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let result = ''
+        
+        // 实时更新AI回复内容
+        const aiMessageIndex = this.messages.length - 1
+        this.messages[aiMessageIndex] = { role: 'ai', content: '' }
+        
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          
+          const chunk = decoder.decode(value, { stream: true })
+          result += chunk
+          
+          // 实时更新显示
+          this.messages[aiMessageIndex].content = result
+          this.scrollToBottom()
+        }
+        
+        return result
+      } catch (error) {
+        console.error('流式请求失败:', error)
+        throw error
+      }
+    },
+    
     scrollToBottom() {
       this.$nextTick(() => {
         const el = this.$refs.chatWindow

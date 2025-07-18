@@ -23,36 +23,36 @@ service.interceptors.request.use(
     return Promise.reject(error)
   }
 )
-// 响应拦截器
+// 响应拦截器// 响应拦截器
 service.interceptors.response.use(
   response => {
     const res = response.data
-  
-    if (res.code !== 0) {
-      Message({
-        message: res.msg || 'Error',
-        type: 'error',
-        duration: 5 * 1000
-      })
-      
-      return Promise.reject(new Error(res.msg || 'Error'))
-    } else {
-
-      //请求成功  存储后端生成的新的token
-      const { token } = res
-
-       if (token != null) {
-        console.log(token + '---------------------------------')
-        // 设置token到cookie中
-        setToken(token)
-        // 设置token到 state状态管理对象中
-        store.commit('user/SET_TOKEN', token)
+    
+    // 处理业务错误码
+    if (res && typeof res.code !== 'undefined') {
+      if (res.code !== 0) {
+        Message({
+          message: res.msg || 'Error',
+          type: 'error',
+          duration: 5 * 1000
+        })
+        return Promise.reject(new Error(res.msg || 'Error'))
       }
-      return res
     }
+    
+    // 保留 token 处理逻辑，但增加条件判断
+    const { token } = res || {}
+    if (token) {
+      console.log(`Token 更新: ${token}`)
+      setToken(token)           // 存储到 Cookie
+      store.commit('user/SET_TOKEN', token)  // 存储到 Vuex
+    }
+    
+    // 根据后端返回结构决定返回 res 还是 res.data
+    return res.data || res
   },
   error => {
-    console.log('err' + error) // for debug
+    console.log('err' + error)
     Message({
       message: error.message,
       type: 'error',
@@ -61,5 +61,4 @@ service.interceptors.response.use(
     return Promise.reject(error)
   }
 )
-
 export default service

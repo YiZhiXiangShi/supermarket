@@ -1,6 +1,6 @@
 <template>
   <div class="stock-page">
-    <el-form :inline="true" class="stock-form">
+    <el-form :inline="true" class="stock-form" @submit.native.prevent>
       <el-form-item label="条码">
         <el-input
           v-model="barcode"
@@ -8,9 +8,6 @@
           style="width: 300px;"
           @keyup.enter.native="handleBarcodeEnter"
         />
-      </el-form-item>
-      <el-form-item>
-        <el-checkbox v-model="manualInput">手动输入条码</el-checkbox>
       </el-form-item>
       <el-form-item class="import-link">
         <el-upload
@@ -50,7 +47,6 @@ export default {
   data() {
     return {
       barcode: '',
-      manualInput: false,
       tableData: []
     }
   },
@@ -88,7 +84,8 @@ export default {
           }).then(res => ({
             found: true,
             data: res.data,
-            quantity: item.quantity
+            quantity: item.quantity,
+            barcode: item.barcode
           })).catch(() => ({ found: false, barcode: item.barcode }))
         ))
         // 只保留查到的商品
@@ -99,6 +96,9 @@ export default {
           unit: r.data.unit,
           quantity: r.quantity || 1
         }))
+        // 统计未查到的条码数量（包括接口异常和data为null的情况）
+        const notFoundResults = results.filter(r => !r.found || !r.data)
+        const notFoundCount = notFoundResults.length
         // 合并到现有表格（相同条码累加数量）
         const barcodeMap = new Map()
         this.tableData.forEach(item => {
@@ -112,7 +112,12 @@ export default {
           }
         })
         this.tableData = Array.from(barcodeMap.values())
-        this.$message.success(`成功导入 ${validRows.length} 条商品，未查到的条码已自动忽略`)
+        // 统一提示
+        let msg = `成功导入 ${validRows.length} 条商品`
+        if (notFoundCount > 0) {
+          msg += `，有 ${notFoundCount} 条商品未查到，已忽略`
+        }
+        this.$message.success(msg)
       } catch (error) {
         console.error('导入Excel文件时出错:', error)
         this.$message.error('导入Excel文件失败: ' + error.message)

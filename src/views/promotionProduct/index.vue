@@ -25,10 +25,37 @@
     <el-dialog :title="dialogTitle" :visible.sync="dialogVisible" width="500px" :close-on-click-modal="false">
       <el-form :model="form" :rules="rules" ref="formRef" label-width="110px">
         <el-form-item label="商品编号" prop="productSerialNo">
-          <el-input v-model="form.productSerialNo" />
+          <el-select
+            v-model="form.productSerialNo"
+            placeholder="请选择或输入商品编号"
+            filterable
+            allow-create
+            default-first-option
+            @change="handleProductChange"
+            style="width: 100%;"
+          >
+            <el-option
+              v-for="item in products"
+              :key="item.serialNo"
+              :label="`${item.serialNo} - ${item.productName}`"
+              :value="item.serialNo"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="活动类型ID" prop="promotionTypeId">
-          <el-input v-model="form.promotionTypeId" />
+          <el-select
+            v-model="form.promotionTypeId"
+            placeholder="请选择活动类型"
+            filterable
+            style="width: 100%;"
+          >
+            <el-option
+              v-for="item in promotionTypes"
+              :key="item.id"
+              :label="`${item.id} - ${item.name}`"
+              :value="item.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="折扣" prop="discount">
           <el-input v-model="form.discount" />
@@ -64,6 +91,8 @@ import {
   updatePromotionProduct,
   deletePromotionProduct
 } from '@/api/promotionProduct'
+import { fetchProductList } from '@/api/product'
+import { fetchPromotionTypeList } from '@/api/promotionType'
 
 export default {
   name: 'PromotionProduct',
@@ -82,23 +111,44 @@ export default {
         status: 1,
         remark: ''
       },
+      products: [],
+      promotionTypes: [],
       rules: {
         productSerialNo: [{ required: true, message: '请输入商品编号', trigger: 'blur' }],
-        promotionTypeId: [{ required: true, message: '请输入活动类型ID', trigger: 'blur' }],
+        promotionTypeId: [{ required: true, message: '请选择活动类型', trigger: 'change' }],
         discount: [{ required: true, message: '请输入折扣', trigger: 'blur' }],
         startTime: [{ required: true, message: '请选择开始时间', trigger: 'change' }],
-        endTime: [{ required: true, message: '请选择结束时间', trigger: 'change' }],
+        endTime: [
+          { required: true, message: '请选择结束时间', trigger: 'change' },
+          { validator: this.validateEndTime, trigger: 'change' }
+        ],
         status: [{ required: true, message: '请选择状态', trigger: 'change' }]
       }
     }
   },
   mounted() {
     this.getList()
+    this.getProducts()
+    this.getPromotionTypes()
   },
   methods: {
     async getList() {
       const res = await fetchPromotionProducts()
       this.list = res || []
+    },
+    async getProducts() {
+      const res = await fetchProductList()
+      this.products = (res && res.data) ? res.data : (res || [])
+    },
+    async getPromotionTypes() {
+      const res = await fetchPromotionTypeList()
+      this.promotionTypes = res || []
+    },
+    handleProductChange(val) {
+      const found = this.products.find(p => p.serialNo === val)
+      if (!found) {
+        this.$message.warning('该商品编号不存在，请检查或先添加商品！')
+      }
     },
     openDialog(row) {
       if (row) {
@@ -156,6 +206,17 @@ export default {
           }
         })
         .catch(() => {})
+    },
+    validateEndTime(rule, value, callback) {
+      if (!value || !this.form.startTime) {
+        callback();
+        return;
+      }
+      if (new Date(value) <= new Date(this.form.startTime)) {
+        callback(new Error('结束时间必须大于开始时间'));
+      } else {
+        callback();
+      }
     }
   }
 }

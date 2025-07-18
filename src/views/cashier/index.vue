@@ -24,6 +24,7 @@
 
     <!-- 结账弹窗 -->
     <el-dialog
+      v-dialogDrag
       title="收银结账"
       :visible.sync="checkoutDialogVisible"
       width="60%"
@@ -78,6 +79,33 @@
         <el-button type="primary" @click="confirmCheckout">确定收银</el-button>
       </div>
     </el-dialog>
+
+    <!-- 票据弹窗 -->
+    <el-dialog
+      title="超市票据"
+      :visible.sync="receiptDialogVisible"
+      width="400px"
+      :close-on-click-modal="false">
+      <div ref="receiptContent" class="receipt-content">
+        <div style="text-align:center;font-weight:bold;">超市收银票据</div>
+        <div>收银员工号：{{ cashierInfo.employeeId }}</div>
+        <div>日期：{{ cashierInfo.date }}</div>
+        <div>流水号：{{ cashierInfo.serialNumber }}</div>
+        <hr>
+        <div v-for="(item, idx) in checkoutItems" :key="idx" style="font-size:13px;">
+          {{ item.productName }} ×{{ item.quantity }}  ¥{{ item.unitPrice }} = ¥{{ item.totalPrice }}
+        </div>
+        <hr>
+        <div>总计：¥{{ totalAmount }}</div>
+        <div>优惠：¥{{ discountAmount }}</div>
+        <div>实收：¥{{ receivedAmount }}</div>
+        <div>找零：¥{{ changeAmount }}</div>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="printReceipt">打印票据</el-button>
+        <el-button @click="receiptDialogVisible = false">关闭</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -100,7 +128,8 @@ export default {
       },
       receivedAmount: '',
       discountAmount: 0,
-      changeAmount: 0
+      changeAmount: 0,
+      receiptDialogVisible: false // 票据弹窗状态
     }
   },
   computed: {
@@ -109,6 +138,7 @@ export default {
     }
   },
   created() {
+    console.log('created钩子执行了')
     this.loadAll()
     this.initCashierInfo()
   },
@@ -122,7 +152,9 @@ export default {
     async loadAll() {
       try {
         const res = await findAll()
-        this.tableData = res.data || []
+        console.log('接口findAll返回：', res)
+        this.tableData = Array.isArray(res) ? res : (res.data || [])
+        console.log('赋值后tableData：', this.tableData)
       } catch (e) {
         console.error('findAll异常', e)
         this.$message.error('加载全部商品失败')
@@ -166,8 +198,20 @@ export default {
       // 这里可以调用结账接口
       this.$message.success('收银成功！')
       this.checkoutDialogVisible = false
-      // 清空表格数据
-      this.tableData = []
+      // 弹出票据视图
+      this.receiptDialogVisible = true
+      // 不再清空表格数据
+    },
+    printReceipt() {
+      const printContent = this.$refs.receiptContent
+      const newWin = window.open('', '', 'width=400,height=600')
+      newWin.document.write('<html><head><title>打印票据</title></head><body>')
+      newWin.document.write(printContent.innerHTML)
+      newWin.document.write('</body></html>')
+      newWin.document.close()
+      newWin.focus()
+      newWin.print()
+      newWin.close()
     }
   }
 }
@@ -224,5 +268,18 @@ export default {
 
 .dialog-footer {
   text-align: right;
+}
+
+.receipt-content {
+  font-size: 14px;
+  line-height: 1.7;
+  padding: 28px 12px;
+  border: 1.5px solid #dcdfe6;
+  border-radius: 8px;
+  background: #fafbfc;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  margin: 10px auto;
+  max-width: 220px;
+  min-width: 120px;
 }
 </style>

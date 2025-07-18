@@ -6,7 +6,8 @@
           v-model="barcode"
           placeholder="请扫描商品条码"
           style="width: 300px;"
-          @keyup.enter.native="handleBarcodeEnter"
+          @input="onBarcodeInput"
+          maxlength="13"
         />
       </el-form-item>
       <el-form-item class="import-link">
@@ -51,6 +52,10 @@ export default {
     }
   },
   methods: {
+    onBarcodeInput(val) {
+      // 只允许输入数字，且最大13位
+      this.barcode = val.replace(/\D/g, '').slice(0, 13)
+    },
     readFile(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader()

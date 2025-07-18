@@ -8,6 +8,7 @@
           style="width: 300px;"
           @input="onBarcodeInput"
           maxlength="13"
+          @keyup.enter.native="handleBarcodeEnter"
         />
       </el-form-item>
       <el-form-item class="import-link">

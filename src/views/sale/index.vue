@@ -56,6 +56,9 @@
     
     <div class="button-section">
       <button @click="fetchAndRenderChart" class="query-btn">查询</button>
+      <button @click="exportToExcel" class="export-btn excel-btn" :disabled="!hasData">
+        <i class="el-icon-download"></i> 导出Excel
+      </button>
     </div>
   </div>
   
@@ -68,6 +71,7 @@
 <script>
 import * as echarts from 'echarts';
 import { fetchSaleList, findSalename } from '@/api/sale';
+import * as XLSX from 'xlsx';
 
 export default {
   data() {
@@ -79,7 +83,9 @@ export default {
       date: '',     // 对应后端 private Date date
       suggestions: [], // 存储提示数据
       showSuggestions: false, // 控制提示框的显示
-      hoveredIndex: -1 // 当前高亮的提示项索引
+      hoveredIndex: -1, // 当前高亮的提示项索引
+      hasData: false, // 是否有数据可以导出
+      chartData: null // 存储图表数据
     };
   },
   mounted() {
@@ -264,10 +270,83 @@ export default {
         window.addEventListener('resize', () => {
           myChart.resize();
         });
-
+        
+        // 保存数据用于报表生成
+        this.chartData = {
+          xAxis: xAxis,
+          yAxis: yAxis,
+          params: params
+        };
+        this.hasData = true;
+        
       } catch (error) {
         console.error('请求数据失败:', error);
         this.$message && this.$message.error('请求数据失败');
+        this.hasData = false;
+      }
+    },
+    
+    // 导出Excel报表
+    exportToExcel() {
+      if (!this.chartData) {
+        this.$message && this.$message.warning('请先查询数据');
+        return;
+      }
+      
+      // 检查名称是否为空
+      if (!this.name || this.name.trim() === '') {
+        this.$message && this.$message.warning('请先输入名称再导出报表');
+        return;
+      }
+      
+      try {
+        const { xAxis, yAxis, params } = this.chartData;
+        
+        // 创建工作簿
+        const wb = XLSX.utils.book_new();
+        
+        // 准备数据
+        const excelData = [
+          ['销售数据报表'],
+          [''],
+          ['查询条件'],
+          ['类型', params.type],
+          ['时间', params.time],
+          ['名称', params.name || '全部'],
+          ['日期', params.date || '全部'],
+          [''],
+          ['销售数据'],
+          ['月份', '销售量']
+        ];
+        
+        // 添加数据行
+        xAxis.forEach((month, index) => {
+          excelData.push([month, yAxis[index] || 0]);
+        });
+        
+        // 创建工作表
+        const ws = XLSX.utils.aoa_to_sheet(excelData);
+        
+        // 设置列宽
+        ws['!cols'] = [
+          { width: 15 },
+          { width: 15 }
+        ];
+        
+        // 添加工作表到工作簿
+        XLSX.utils.book_append_sheet(wb, ws, '销售报表');
+        
+        // 生成文件名
+        const fileName = `销售报表_${params.type}_${params.time}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        
+        // 下载文件
+        XLSX.writeFile(wb, fileName);
+        
+        this.$message && this.$message.success('Excel报表导出成功');
+        
+      } catch (error) {
+        console.error('导出Excel失败:', error);
+        this.$message && this.$message.error('导出Excel失败');
       }
     },
     
@@ -446,6 +525,8 @@ export default {
 .button-section {
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .query-btn {
@@ -465,6 +546,36 @@ export default {
 
 .query-btn:active {
   background-color: #337ecc;
+}
+
+.export-btn {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.excel-btn {
+  background-color: #67c23a;
+  color: white;
+}
+
+.excel-btn:hover:not(:disabled) {
+  background-color: #85ce61;
+}
+
+.excel-btn:active:not(:disabled) {
+  background-color: #5daf34;
 }
 
 .chart-section {

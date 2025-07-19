@@ -1,56 +1,67 @@
 <template>
-<div style="margin-bottom: 20px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
-  <label>类型：
-    <select v-model="type" @change="onTypeChange">
-      <option value="种类">种类</option>
-      <option value="商品">商品</option>
-    </select>
-  </label>
+<div class="sale-container">
+  <div class="filter-section">
+    <div class="filter-row">
+      <div class="filter-item">
+        <label>类型：</label>
+        <select v-model="type" @change="onTypeChange" class="filter-select">
+          <option value="种类">种类</option>
+          <option value="商品">商品</option>
+        </select>
+      </div>
 
-  <label>时间：
-    <select v-model="time">
-      <option value="日">日</option>
-      <option value="月">月</option>
-    </select>
-  </label>
+      <div class="filter-item">
+        <label>时间：</label>
+        <select v-model="time" class="filter-select">
+          <option value="日">日</option>
+          <option value="月">月</option>
+        </select>
+      </div>
 
-  <label>名称：
-    <div class="input-container">
-      <input 
-        type="text" 
-        v-model="name" 
-        placeholder="请输入名称" 
-        @focus="onNameFocus"
-        @input="onNameInput"
-        @blur="onNameBlur"
-        @keydown="onKeyDown"
-        class="name-input"
-      />
-      <!-- 自定义下拉提示框 -->
-      <div v-if="showSuggestions && suggestions.length > 0" class="suggestions-dropdown">
-        <div 
-          v-for="(item, index) in suggestions" 
-          :key="item"
-          @click.stop="selectSuggestion(item)"
-          @mousedown.prevent="selectSuggestion(item)"
-          @mouseenter="hoveredIndex = index"
-          :class="['suggestion-item', { 'hovered': hoveredIndex === index }]"
-        >
-          {{ item }}
+      <div class="filter-item">
+        <label>名称：</label>
+        <div class="input-container">
+          <input 
+            type="text" 
+            v-model="name" 
+            placeholder="请输入名称" 
+            @focus="onNameFocus"
+            @input="onNameInput"
+            @blur="onNameBlur"
+            @keydown="onKeyDown"
+            class="name-input"
+          />
+          <!-- 自定义下拉提示框 -->
+          <div v-if="showSuggestions && suggestions.length > 0" class="suggestions-dropdown">
+            <div 
+              v-for="(item, index) in suggestions" 
+              :key="item"
+              @click.stop="selectSuggestion(item)"
+              @mousedown.prevent="selectSuggestion(item)"
+              @mouseenter="hoveredIndex = index"
+              :class="['suggestion-item', { 'hovered': hoveredIndex === index }]"
+            >
+              {{ item }}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </label>
 
-  <!-- 条件显示日期输入框 -->
-  <div v-if="time === '日'">
-    <label>日期：
-      <input type="date" v-model="date" />
-    </label>
+      <!-- 条件显示日期输入框 -->
+      <div v-if="time === '日'" class="filter-item">
+        <label>日期：</label>
+        <input type="date" v-model="date" class="filter-input" />
+      </div>
+    </div>
+    
+    <div class="button-section">
+      <button @click="fetchAndRenderChart" class="query-btn">查询</button>
+    </div>
   </div>
   
-  <button @click="fetchAndRenderChart">查询</button>
-  <div id="main" style="width: 600px; height: 400px;"></div>
+  <div class="chart-section">
+    <div id="main" class="chart-container"></div>
+  </div>
 </div>
 </template>
 
@@ -248,6 +259,12 @@ export default {
         };
 
         myChart.setOption(option);
+        
+        // 添加响应式处理
+        window.addEventListener('resize', () => {
+          myChart.resize();
+        });
+
       } catch (error) {
         console.error('请求数据失败:', error);
         this.$message && this.$message.error('请求数据失败');
@@ -293,6 +310,50 @@ export default {
 </script>
 
 <style scoped>
+.sale-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.filter-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: center;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-select, .filter-input {
+  padding: 8px 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.filter-select:focus, .filter-input:focus {
+  border-color: #409eff;
+}
+
 .input-container {
   position: relative;
   display: inline-block;
@@ -380,5 +441,129 @@ export default {
 
 .suggestions-dropdown::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
+}
+
+.button-section {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.query-btn {
+  padding: 8px 15px;
+  background-color: #409eff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.query-btn:hover {
+  background-color: #66b1ff;
+}
+
+.query-btn:active {
+  background-color: #337ecc;
+}
+
+.chart-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.chart-container {
+  width: 100%;
+  height: 400px; /* Adjust height as needed */
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .sale-container {
+    padding: 15px;
+    gap: 15px;
+  }
+  
+  .filter-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filter-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .filter-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .filter-select, .filter-input, .name-input {
+    width: 100%;
+    min-width: 200px;
+  }
+  
+  .button-section {
+    justify-content: center;
+  }
+  
+  .query-btn {
+    width: 100%;
+    max-width: 200px;
+  }
+  
+  .chart-container {
+    height: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sale-container {
+    padding: 10px;
+    gap: 10px;
+  }
+  
+  .filter-item label {
+    font-size: 14px;
+    font-weight: 500;
+  }
+  
+  .filter-select, .filter-input, .name-input {
+    font-size: 16px; /* 防止iOS缩放 */
+    padding: 10px 12px;
+  }
+  
+  .chart-container {
+    height: 250px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .sale-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .chart-container {
+    height: 500px;
+  }
+}
+
+/* 确保图表在小屏幕上也能正常显示 */
+@media (max-width: 600px) {
+  .suggestions-dropdown {
+    max-height: 150px;
+  }
+  
+  .suggestion-item {
+    padding: 10px 12px;
+    font-size: 16px;
+  }
 }
 </style>

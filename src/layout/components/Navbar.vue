@@ -61,7 +61,6 @@ export default {
   mounted() {
     console.log('导航栏组件已挂载')
     console.log('导航栏 - Vuex用户状态:', this.$store.state.user)
-    console.log('导航栏 - 本地存储用户信息:', this.$store.$options.store.state.user)
   },
   methods: {
     toggleSideBar() {

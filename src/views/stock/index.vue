@@ -13,6 +13,7 @@
       </el-form-item>
       <el-form-item class="import-link">
         <el-upload
+          action="#"
           :show-file-list="false"
           :on-change="handleUpload"
           accept=".xls,.xlsx"

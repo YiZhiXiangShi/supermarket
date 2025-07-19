@@ -13,34 +13,35 @@
       </el-form-item>
       <el-form-item class="import-link">
         <el-upload
+          action="#"
           :show-file-list="false"
           :on-change="handleUpload"
           accept=".xls,.xlsx"
           :auto-upload="false"
         >
-          <el-link type="primary">导入excel文件</el-link>
+          <el-button type="primary" icon="el-icon-upload2">导入Excel文件</el-button>
         </el-upload>
       </el-form-item>
       <el-form-item>
-        <el-button type="info" icon="el-icon-time" @click="showHistoryDialog">
+        <el-button type="primary" icon="el-icon-time" @click="showHistoryDialog">
           历史记录
         </el-button>
       </el-form-item>
     </el-form>
     <div class="stock-content">
-      <el-table :data="tableData" border style="width: 800px; min-height: 300px;" :key="tableData.length">
-        <el-table-column prop="serialNo" label="流水号" width="120" />
-        <el-table-column prop="barcode" label="条码" width="180" />
-        <el-table-column prop="productName" label="商品名称" width="180" />
-        <el-table-column prop="unit" label="单位" width="80" />
-        <el-table-column prop="quantity" label="上货数量" width="150">
+      <el-table :data="tableData" border style="flex: 1 1 auto; min-width: 700px; max-width: 740px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden; background: #fafbfc;" :key="tableData.length" class="stock-table">
+        <el-table-column prop="serialNo" label="流水号" width="124" align="center" />
+        <el-table-column prop="barcode" label="条码" width="185" align="center" />
+        <el-table-column prop="productName" label="商品名称" width="185" align="center" />
+        <el-table-column prop="unit" label="单位" width="82" align="center" />
+        <el-table-column prop="quantity" label="上货数量" width="154" align="center">
           <template slot-scope="scope">
             <el-input-number v-model="scope.row.quantity" :min="0" size="small" />
           </template>
         </el-table-column>
       </el-table>
       <div class="stock-btn">
-        <el-button type="primary" size="large" @click="handleConfirm">确定</el-button>
+        <el-button type="primary" size="large" @click="handleConfirm" class="stock-confirm-btn">确定</el-button>
       </div>
     </div>
 
@@ -50,6 +51,27 @@
       :visible.sync="historyDialogVisible" 
       width="1200px"
       :before-close="handleHistoryDialogClose">
+      
+      <!-- 操作按钮 -->
+      <div class="export-section" style="margin-bottom: 15px; text-align: right;">
+        <el-button 
+          type="danger" 
+          icon="el-icon-delete" 
+          @click="handleBatchDelete"
+          :loading="batchDeleteLoading"
+          :disabled="!selectedHistoryRows.length">
+          批量删除
+        </el-button>
+        <el-button 
+          type="success" 
+          icon="el-icon-download" 
+          @click="exportToExcel"
+          :loading="exportLoading"
+          :disabled="!historyTableData.length"
+          style="margin-left: 10px;">
+          导出Excel
+        </el-button>
+      </div>
       
               <!-- 搜索条件 -->
         <div class="history-search">
@@ -107,15 +129,30 @@
         :data="historyTableData" 
         style="width: 100%" 
         v-loading="historyLoading"
-        class="history-table">
+        class="history-table"
+        @selection-change="handleHistorySelectionChange">
+        <el-table-column type="selection" width="55" align="center"></el-table-column>
         <el-table-column prop="barcodeNo" label="商品条码" width="140" align="center"></el-table-column>
         <el-table-column prop="productName" label="商品名称" width="180" align="center"></el-table-column>
         <el-table-column prop="unit" label="单位" width="80" align="center"></el-table-column>
         <el-table-column prop="quantity" label="上货数量" width="100" align="center"></el-table-column>
-        <el-table-column prop="operatorName" label="操作员" width="100" align="center"></el-table-column>
+        <el-table-column prop="operatorId" label="操作员ID" width="100" align="center"></el-table-column>
+        <el-table-column prop="operatorName" label="操作员姓名" width="100" align="center"></el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="160" align="center">
           <template slot-scope="scope">
             {{ formatDateTime(scope.row.createTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="120" align="center">
+          <template slot-scope="scope">
+            <el-button
+              type="danger"
+              size="mini"
+              icon="el-icon-delete"
+              @click="handleDeleteHistory(scope.row)"
+              :loading="scope.row.deleteLoading">
+              删除
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -139,7 +176,8 @@
 <script>
 // 动态导入XLSX库
 import request from '@/utils/request'
-import { fetchStockHistoryList, batchInsertStockHistory, fetchStockHistoryListWithPagination } from '@/api/stockHistory'
+import { fetchStockHistoryList, batchInsertStockHistory, fetchStockHistoryListWithPagination, deleteStockHistory, batchDeleteStockHistory } from '@/api/stockHistory'
+import { getUserInfo } from '@/utils/auth'
 
 export default {
   data() {
@@ -161,8 +199,20 @@ export default {
         current: 1,
         size: 10,
         total: 0
-      }
+      },
+      
+      // 导出相关数据
+      exportLoading: false,
+      // 新增：存储当前登录用户信息
+      userInfo: null,
+      // 删除相关数据
+      selectedHistoryRows: [],
+      batchDeleteLoading: false
     }
+  },
+  created() {
+    // 获取当前登录用户信息
+    this.userInfo = getUserInfo() || {}
   },
   methods: {
     onBarcodeInput(val) {
@@ -379,14 +429,16 @@ export default {
     async saveStockHistory() {
       try {
         // 构建历史记录数据
+        const operatorId = this.userInfo && this.userInfo.employeeId ? this.userInfo.employeeId : 1
+        const operatorName = this.userInfo && this.userInfo.name ? this.userInfo.name : '系统操作员'
         const historyList = this.tableData.map(item => ({
           productSerialNo: item.serialNo,
           barcodeNo: item.barcode,
           productName: item.productName,
           unit: item.unit,
           quantity: item.quantity,
-          operatorId: 1, // 这里可以从登录用户信息中获取
-          operatorName: '系统操作员' // 这里可以从登录用户信息中获取
+          operatorId: operatorId, // 用登录人id
+          operatorName: operatorName // 用登录人姓名
         }))
         
         // 调用API保存历史记录
@@ -486,6 +538,89 @@ export default {
       this.fetchHistoryData()
     },
     
+    // 删除历史记录
+    async handleDeleteHistory(row) {
+      try {
+        await this.$confirm(
+          `确定要删除这条上货记录吗？\n商品：${row.productName}\n条码：${row.barcodeNo}\n数量：${row.quantity}`,
+          '确认删除',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+        
+        // 设置删除加载状态
+        this.$set(row, 'deleteLoading', true)
+        
+        // 调用删除API
+        await deleteStockHistory(row.id)
+        
+        this.$message.success('删除成功')
+        
+        // 重新加载数据
+        this.fetchHistoryData()
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error('删除历史记录失败:', error)
+          this.$message.error('删除失败: ' + (error.message || '未知错误'))
+        }
+      } finally {
+        // 清除删除加载状态
+        this.$set(row, 'deleteLoading', false)
+      }
+    },
+    
+    // 历史记录选择变化
+    handleHistorySelectionChange(selection) {
+      this.selectedHistoryRows = selection
+    },
+    
+    // 批量删除历史记录
+    async handleBatchDelete() {
+      if (!this.selectedHistoryRows.length) {
+        this.$message.warning('请选择要删除的记录')
+        return
+      }
+      
+      try {
+        const selectedCount = this.selectedHistoryRows.length
+        await this.$confirm(
+          `确定要删除选中的 ${selectedCount} 条上货记录吗？此操作不可恢复！`,
+          '确认批量删除',
+          {
+            confirmButtonText: '确定删除',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+        
+        this.batchDeleteLoading = true
+        
+        // 获取选中记录的ID列表
+        const ids = this.selectedHistoryRows.map(row => row.id)
+        
+        // 调用批量删除API
+        await batchDeleteStockHistory(ids)
+        
+        this.$message.success(`成功删除 ${selectedCount} 条记录`)
+        
+        // 清空选择
+        this.selectedHistoryRows = []
+        
+        // 重新加载数据
+        this.fetchHistoryData()
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error('批量删除历史记录失败:', error)
+          this.$message.error('批量删除失败: ' + (error.message || '未知错误'))
+        }
+      } finally {
+        this.batchDeleteLoading = false
+      }
+    },
+    
 
     
     // 格式化日期时间
@@ -499,6 +634,65 @@ export default {
       const minutes = String(date.getMinutes()).padStart(2, '0')
       const seconds = String(date.getSeconds()).padStart(2, '0')
       return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+    },
+    
+    // 导出Excel文件
+    async exportToExcel() {
+      if (!this.historyTableData.length) {
+        this.$message.warning('没有数据可导出')
+        return
+      }
+      
+      this.exportLoading = true
+      try {
+        // 动态导入XLSX库
+        const XLSX = await import('xlsx')
+        
+        // 准备导出数据
+        const exportData = this.historyTableData.map(item => ({
+          '商品条码': item.barcodeNo,
+          '商品名称': item.productName,
+          '单位': item.unit,
+          '上货数量': item.quantity,
+          '操作员ID': item.operatorId,
+          '操作员姓名': item.operatorName,
+          '创建时间': this.formatDateTime(item.createTime)
+        }))
+        
+        // 创建工作簿
+        const workBook = XLSX.utils.book_new()
+        const workSheet = XLSX.utils.json_to_sheet(exportData)
+        
+        // 设置列宽
+        const colWidths = [
+          { wch: 15 }, // 商品条码
+          { wch: 20 }, // 商品名称
+          { wch: 8 },  // 单位
+          { wch: 10 }, // 上货数量
+          { wch: 12 }, // 操作员ID
+          { wch: 12 }, // 操作员姓名
+          { wch: 20 }  // 创建时间
+        ]
+        workSheet['!cols'] = colWidths
+        
+        // 添加工作表到工作簿
+        XLSX.utils.book_append_sheet(workBook, workSheet, '上货历史记录')
+        
+        // 生成文件名
+        const now = new Date()
+        const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`
+        const fileName = `上货历史记录_${timestamp}.xlsx`
+        
+        // 导出文件
+        XLSX.writeFile(workBook, fileName)
+        
+        this.$message.success('导出成功')
+      } catch (error) {
+        console.error('导出Excel文件时出错:', error)
+        this.$message.error('导出失败: ' + error.message)
+      } finally {
+        this.exportLoading = false
+      }
     }
   }
 }
@@ -528,13 +722,19 @@ export default {
   flex-direction: row;
   align-items: flex-start;
   justify-content: flex-start;
-  width: 1000px;
+  width: 900px;
+  min-width: 900px;
+  max-width: 900px;
+  margin: 0 auto;
 }
 .stock-btn {
-  margin-left: 40px;
+  margin-left: 2px;
+  width: 160px;
+  flex: 0 0 160px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   height: 100%;
+  justify-content: flex-end;
 }
 .el-table {
   background: #fff;
@@ -569,5 +769,49 @@ export default {
 .history-pagination {
   text-align: right;
   margin-top: 15px;
+}
+
+.stock-table {
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  overflow: hidden;
+  background: #fafbfc;
+  font-size: 15px;
+  /* 去除 el-table 默认外边距 */
+  margin: 0 !important;
+}
+.stock-table ::v-deep .el-table__header th {
+  background: linear-gradient(90deg, #e3f0ff 0%, #f5faff 100%);
+  color: #2d3a4b;
+  font-weight: bold;
+  font-size: 16px;
+  border-bottom: 2px solid #e6e9f0;
+  text-align: center;
+}
+.stock-table ::v-deep .el-table__row {
+  transition: background 0.2s;
+  height: 48px;
+}
+.stock-table ::v-deep .el-table__row:hover {
+  background: #eaf6ff !important;
+}
+.stock-table ::v-deep .el-table__cell {
+  font-size: 15px;
+  color: #34495e;
+  text-align: center;
+}
+.stock-confirm-btn {
+  background: linear-gradient(90deg, #409eff 0%, #66b1ff 100%);
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  border-radius: 24px;
+  padding: 10px 36px;
+  box-shadow: 0 2px 8px rgba(64,158,255,0.12);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.stock-confirm-btn:hover {
+  background: linear-gradient(90deg, #66b1ff 0%, #409eff 100%);
+  box-shadow: 0 4px 16px rgba(64,158,255,0.18);
 }
 </style>

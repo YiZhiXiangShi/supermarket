@@ -32,25 +32,28 @@ service.interceptors.response.use(
     }
     
     const res = response.data
-  
-    if (res.code !== 200) {
-      Message({
-        message: res.message || res.msg || 'Error',
-        type: 'error',
-        duration: 5 * 1000
-      })
-      
-      return Promise.reject(new Error(res.message || res.msg || 'Error'))
-    } else {
-      // 请求成功，处理token
-      if (res.data && res.data.token) {
-        console.log(`Token 更新: ${res.data.token}`)
-        setToken(res.data.token)           // 存储到 Cookie
-        store.commit('user/SET_TOKEN', res.data.token)  // 存储到 Vuex
+    
+    // 处理业务错误码 - 只有当响应包含code字段时才进行错误检查
+    if (res && typeof res.code !== 'undefined') {
+      if (res.code !== 0 && res.code !== 200) {
+        Message({
+          message: res.msg || res.message || 'Error',
+          type: 'error',
+          duration: 5 * 1000
+        })
+        return Promise.reject(new Error(res.msg || res.message || 'Error'))
       }
     }
     
-    // 返回响应数据，让调用方自己处理
+    // 保留 token 处理逻辑，但增加条件判断
+    const { token } = res || {}
+    if (token) {
+      console.log(`Token 更新: ${token}`)
+      setToken(token)           // 存储到 Cookie
+      store.commit('user/SET_TOKEN', token)  // 存储到 Vuex
+    }
+    
+    // 根据后端返回结构决定返回 res 还是 res.data
     return res.data || res
   },
   error => {

@@ -13,6 +13,8 @@ import store from './store'
 import router from './router'
 
 import '@/icons' // icon
+import '@/permission' // permission control
+import dialogDrag from '@/directives/dialogDrag'
 
 // 立即导入路由守卫，确保在应用启动时就生效
 import '@/permission'
@@ -29,7 +31,9 @@ if (process.env.NODE_ENV === 'production') {
 
 Vue.config.productionTip = false
 
-const app = new Vue({
+Vue.directive('dialogDrag', dialogDrag)
+
+new Vue({
   el: '#app',
   router,
   store,

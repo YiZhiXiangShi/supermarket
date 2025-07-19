@@ -701,18 +701,11 @@ export default {
         }
         console.log('请求参数:', params)
         console.log('请求URL:', '/api/employee/page')
-        
         const response = await employeeApi.search(params)
-        console.log('响应数据:', response)
-        
-        if (response && response.code === 200) {
-          this.tableData = response.data.records || []
-          this.pagination.total = response.data.total || 0
-          console.log('表格数据:', this.tableData)
-        } else {
-          console.error('响应码错误:', response?.code, response?.message)
-          this.$message.error(response?.message || '获取数据失败')
-        }
+        // 适配request.js返回res.data，直接用response.records
+        this.tableData = response.records || []
+        this.pagination.total = response.total || 0
+        console.log('表格数据:', this.tableData)
       } catch (error) {
         console.error('获取数据失败:', error)
         console.error('错误详情:', error.response)
@@ -743,6 +736,7 @@ export default {
         this.$message.warning('请输入搜索内容')
         return
       }
+<<<<<<< HEAD
       
       // 如果是员工号搜索，验证输入是否为数字
       if (this.searchType === 'employeeId') {
@@ -757,6 +751,8 @@ export default {
         }
       }
       
+=======
+>>>>>>> aba7be8bb249bd5cd134bcaf8f6638b7a4eb4886
       this.loading = true
       try {
         const params = {
@@ -764,35 +760,25 @@ export default {
           current: this.searchPagination.current,
           size: this.searchPagination.size
         }
-        
         // 如果是员工号搜索，转换为数字类型
         if (this.searchType === 'employeeId') {
           params.employeeId = parseInt(this.searchValue)
         }
-        
         console.log('搜索类型:', this.searchType)
         console.log('搜索值:', this.searchValue)
         console.log('搜索参数:', params)
         console.log('请求URL:', '/api/employee/page')
-        
         const response = await employeeApi.search(params)
-        console.log('搜索结果:', response)
-        
-        if (response.code === 200) {
-          this.searchResults = response.data.records || []
-          this.searchPagination.total = response.data.total || 0
-          console.log('搜索结果数据:', this.searchResults)
-          console.log('结果数量:', this.searchResults.length)
-          console.log('总记录数:', this.searchPagination.total)
-          
-          if (this.searchResults.length === 0) {
-            this.$message.info('未找到匹配的员工')
-          } else {
-            this.$message.success(`找到 ${this.searchPagination.total} 条匹配记录，当前显示第 ${this.searchPagination.current} 页`)
-          }
+        // 适配request.js返回res.data，直接用response.records
+        this.searchResults = response.records || []
+        this.searchPagination.total = response.total || 0
+        console.log('搜索结果数据:', this.searchResults)
+        console.log('结果数量:', this.searchResults.length)
+        console.log('总记录数:', this.searchPagination.total)
+        if (this.searchResults.length === 0) {
+          this.$message.info('未找到匹配的员工')
         } else {
-          console.error('响应码错误:', response?.code, response?.message)
-          this.$message.error(response.message || '搜索失败')
+          this.$message.success(`找到 ${this.searchPagination.total} 条匹配记录，当前显示第 ${this.searchPagination.current} 页`)
         }
       } catch (error) {
         console.error('搜索失败:', error)
@@ -1002,6 +988,7 @@ export default {
             }
             
             console.log('编辑提交数据:', submitData)
+<<<<<<< HEAD
             console.log('deletePhoto标识:', submitData.deletePhoto)
             const response = await employeeApi.update(submitData)
             console.log('更新响应:', response)
@@ -1012,9 +999,15 @@ export default {
             } else {
               this.$message.error(response.message || '更新失败')
             }
+=======
+            await employeeApi.update(submitData)
+            this.$message.success('更新成功')
+            this.dialogVisible = false
+            this.fetchData()
+>>>>>>> aba7be8bb249bd5cd134bcaf8f6638b7a4eb4886
           } catch (error) {
             console.error('更新失败:', error)
-            this.$message.error('更新失败')
+            this.$message.error('更新失败: ' + (error.message || '未知错误'))
           } finally {
             this.submitLoading = false
           }

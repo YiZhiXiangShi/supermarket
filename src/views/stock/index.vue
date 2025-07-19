@@ -1,16 +1,15 @@
 <template>
   <div class="stock-page">
-    <el-form :inline="true" class="stock-form">
+    <el-form :inline="true" class="stock-form" @submit.native.prevent>
       <el-form-item label="条码">
         <el-input
           v-model="barcode"
           placeholder="请扫描商品条码"
           style="width: 300px;"
+          @input="onBarcodeInput"
+          maxlength="13"
           @keyup.enter.native="handleBarcodeEnter"
         />
-      </el-form-item>
-      <el-form-item>
-        <el-checkbox v-model="manualInput">手动输入条码</el-checkbox>
       </el-form-item>
       <el-form-item class="import-link">
         <el-upload
@@ -50,11 +49,14 @@ export default {
   data() {
     return {
       barcode: '',
-      manualInput: false,
       tableData: []
     }
   },
   methods: {
+    onBarcodeInput(val) {
+      // 只允许输入数字，且最大13位
+      this.barcode = val.replace(/\D/g, '').slice(0, 13)
+    },
     readFile(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader()
@@ -85,20 +87,27 @@ export default {
           request({
             url: `/product/barcode/${item.barcode}`,
             method: 'get'
-          }).then(res => ({
-            found: true,
-            data: res.data,
-            quantity: item.quantity
-          })).catch(() => ({ found: false, barcode: item.barcode }))
+          }).then(res => {
+            console.log('查商品结果:', res)
+            return {
+              found: !!(res && res.barcodeNo),
+              data: res,
+              quantity: item.quantity,
+              barcode: item.barcode
+            }
+          }).catch(() => ({ found: false, barcode: item.barcode }))
         ))
         // 只保留查到的商品
-        const validRows = results.filter(r => r.found && r.data).map(r => ({
+        const validRows = results.filter(r => r.found).map(r => ({
           serialNo: r.data.serialNo,
           barcode: r.data.barcodeNo,
           productName: r.data.productName,
           unit: r.data.unit,
           quantity: r.quantity || 1
         }))
+        // 统计未查到的条码数量（包括接口异常和data为null的情况）
+        const notFoundResults = results.filter(r => !r.found || !r.data)
+        const notFoundCount = notFoundResults.length
         // 合并到现有表格（相同条码累加数量）
         const barcodeMap = new Map()
         this.tableData.forEach(item => {
@@ -112,7 +121,12 @@ export default {
           }
         })
         this.tableData = Array.from(barcodeMap.values())
-        this.$message.success(`成功导入 ${validRows.length} 条商品，未查到的条码已自动忽略`)
+        // 统一提示
+        let msg = `成功导入 ${validRows.length} 条商品`
+        if (notFoundCount > 0) {
+          msg += `，有 ${notFoundCount} 条商品未查到，已忽略`
+        }
+        this.$message.success(msg)
       } catch (error) {
         console.error('导入Excel文件时出错:', error)
         this.$message.error('导入Excel文件失败: ' + error.message)
@@ -196,15 +210,16 @@ export default {
           url: `/product/barcode/${this.barcode}`,
           method: 'get'
         })
-        if (res && res.data) {
-          const existIndex = this.tableData.findIndex(item => item.barcode === res.data.barcodeNo)
+        console.log('接口响应:', res)
+        if (res) {
+          const existIndex = this.tableData.findIndex(item => item.barcode === res.barcodeNo)
           if (existIndex === -1) {
             // 商品不存在，添加新行
             this.tableData.push({
-              serialNo: res.data.serialNo,
-              barcode: res.data.barcodeNo,
-              productName: res.data.productName,
-              unit: res.data.unit,
+              serialNo: res.serialNo,
+              barcode: res.barcodeNo,
+              productName: res.productName,
+              unit: res.unit,
               quantity: 1
             })
             this.$message.success('商品已添加到表格')

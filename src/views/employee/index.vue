@@ -1162,7 +1162,7 @@ export default {
       // 如果尝试次数过多，使用时间戳生成工号
       const timestampId = Math.floor(1000 + (Date.now() % 9000))
       this.form.employeeId = timestampId
-      this.$message.warning(`生成工号: ${timestampId} (使用备用方案)`)
+      this.$message.warning(`生成工号: ${timestampId}`)
       console.log(`工号生成失败，使用备用方案，尝试次数: ${attempts}`)
     },
     

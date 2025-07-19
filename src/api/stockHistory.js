@@ -65,4 +65,21 @@ export function batchInsertStockHistory(data) {
     method: 'post',
     data
   })
+}
+
+// 删除上货历史记录
+export function deleteStockHistory(id) {
+  return request({
+    url: `/stock/history/delete/${id}`,
+    method: 'delete'
+  })
+}
+
+// 批量删除上货历史记录
+export function batchDeleteStockHistory(ids) {
+  return request({
+    url: '/stock/history/batchDelete',
+    method: 'delete',
+    data: { ids }
+  })
 } 

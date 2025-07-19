@@ -16,13 +16,10 @@ import '@/icons' // icon
 import '@/permission' // permission control
 import dialogDrag from '@/directives/dialogDrag'
 
-<<<<<<< HEAD
 // 导入axios实例
 import request from '@/utils/request'
-=======
 // 立即导入路由守卫，确保在应用启动时就生效
 import '@/permission'
->>>>>>> 1cd239400e88d3cef797c842ebdb3ab9a29022eb
 
 if (process.env.NODE_ENV === 'production') {
   const { mockXHR } = require('../mock')

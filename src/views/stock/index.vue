@@ -21,6 +21,11 @@
           <el-link type="primary">导入excel文件</el-link>
         </el-upload>
       </el-form-item>
+      <el-form-item>
+        <el-button type="info" icon="el-icon-time" @click="showHistoryDialog">
+          历史记录
+        </el-button>
+      </el-form-item>
     </el-form>
     <div class="stock-content">
       <el-table :data="tableData" border style="width: 800px; min-height: 300px;" :key="tableData.length">
@@ -38,18 +43,125 @@
         <el-button type="primary" size="large" @click="handleConfirm">确定</el-button>
       </div>
     </div>
+
+    <!-- 历史记录对话框 -->
+    <el-dialog 
+      title="上货历史记录" 
+      :visible.sync="historyDialogVisible" 
+      width="1200px"
+      :before-close="handleHistoryDialogClose">
+      
+              <!-- 搜索条件 -->
+        <div class="history-search">
+          <el-form :inline="true" :model="historySearchForm" class="search-form">
+            <el-form-item label="商品条码">
+              <el-input 
+                v-model="historySearchForm.barcodeNo" 
+                placeholder="请输入商品条码"
+                clearable
+                style="width: 150px;">
+              </el-input>
+            </el-form-item>
+          <el-form-item label="商品名称">
+            <el-input 
+              v-model="historySearchForm.productName" 
+              placeholder="请输入商品名称"
+              clearable
+              style="width: 150px;">
+            </el-input>
+          </el-form-item>
+          <el-form-item label="操作员">
+            <el-input 
+              v-model="historySearchForm.operatorName" 
+              placeholder="请输入操作员姓名"
+              clearable
+              style="width: 150px;">
+            </el-input>
+          </el-form-item>
+          <el-form-item label="时间范围">
+            <el-date-picker
+              v-model="historySearchForm.timeRange"
+              type="datetimerange"
+              range-separator="至"
+              start-placeholder="开始时间"
+              end-placeholder="结束时间"
+              format="yyyy-MM-dd HH:mm:ss"
+              value-format="yyyy-MM-dd HH:mm:ss"
+              style="width: 300px;">
+            </el-date-picker>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="handleHistorySearch" icon="el-icon-search">
+              搜索
+            </el-button>
+            <el-button @click="handleHistoryReset" icon="el-icon-refresh">
+              重置
+            </el-button>
+
+          </el-form-item>
+        </el-form>
+      </div>
+
+      <!-- 历史记录表格 -->
+      <el-table 
+        :data="historyTableData" 
+        style="width: 100%" 
+        v-loading="historyLoading"
+        class="history-table">
+        <el-table-column prop="barcodeNo" label="商品条码" width="140" align="center"></el-table-column>
+        <el-table-column prop="productName" label="商品名称" width="180" align="center"></el-table-column>
+        <el-table-column prop="unit" label="单位" width="80" align="center"></el-table-column>
+        <el-table-column prop="quantity" label="上货数量" width="100" align="center"></el-table-column>
+        <el-table-column prop="operatorName" label="操作员" width="100" align="center"></el-table-column>
+        <el-table-column prop="createTime" label="创建时间" width="160" align="center">
+          <template slot-scope="scope">
+            {{ formatDateTime(scope.row.createTime) }}
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- 历史记录分页 -->
+      <div class="history-pagination">
+        <el-pagination
+          @size-change="handleHistorySizeChange"
+          @current-change="handleHistoryCurrentChange"
+          :current-page="historyPagination.current"
+          :page-sizes="[10, 20, 50, 100]"
+          :page-size="historyPagination.size"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="historyPagination.total">
+        </el-pagination>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
 // 动态导入XLSX库
 import request from '@/utils/request'
+import { fetchStockHistoryList, batchInsertStockHistory, fetchStockHistoryListWithPagination } from '@/api/stockHistory'
 
 export default {
   data() {
     return {
       barcode: '',
-      tableData: []
+      tableData: [],
+      
+      // 历史记录相关数据
+      historyDialogVisible: false,
+      historyLoading: false,
+      historyTableData: [],
+      historySearchForm: {
+        barcodeNo: '',
+        productName: '',
+        operatorName: '',
+        timeRange: []
+      },
+      historyPagination: {
+        current: 1,
+        size: 10,
+        total: 0
+      }
     }
   },
   methods: {
@@ -251,12 +363,142 @@ export default {
           method: 'post',
           data: updateList
         })
+        
+        // 保存上货历史记录
+        await this.saveStockHistory()
+        
         this.$message.success('库存更新成功')
         this.tableData = []
         this.barcode = ''
       } catch (e) {
         this.$message.error('库存更新失败')
       }
+    },
+    
+    // 保存上货历史记录
+    async saveStockHistory() {
+      try {
+        // 构建历史记录数据
+        const historyList = this.tableData.map(item => ({
+          productSerialNo: item.serialNo,
+          barcodeNo: item.barcode,
+          productName: item.productName,
+          unit: item.unit,
+          quantity: item.quantity,
+          operatorId: 1, // 这里可以从登录用户信息中获取
+          operatorName: '系统操作员' // 这里可以从登录用户信息中获取
+        }))
+        
+        // 调用API保存历史记录
+        await batchInsertStockHistory(historyList)
+        console.log('上货历史记录保存成功')
+      } catch (error) {
+        console.error('保存上货历史记录失败:', error)
+        // 这里不抛出异常，避免影响主要的上货功能
+      }
+    },
+    
+    // 显示历史记录对话框
+    showHistoryDialog() {
+      this.historyDialogVisible = true
+      this.fetchHistoryData()
+    },
+    
+    // 关闭历史记录对话框
+    handleHistoryDialogClose() {
+      this.historyDialogVisible = false
+      this.resetHistorySearch()
+    },
+    
+    // 获取历史记录数据
+    async fetchHistoryData() {
+      this.historyLoading = true
+      try {
+        const params = {
+          current: this.historyPagination.current,
+          size: this.historyPagination.size,
+          ...this.historySearchForm
+        }
+        
+        // 处理时间范围
+        if (this.historySearchForm.timeRange && this.historySearchForm.timeRange.length === 2) {
+          params.startTime = this.historySearchForm.timeRange[0]
+          params.endTime = this.historySearchForm.timeRange[1]
+        }
+        
+        console.log('发送搜索参数:', params)
+        const response = await fetchStockHistoryListWithPagination(params)
+        console.log('搜索响应:', response)
+        
+        if (response && response.code === 0 && response.data) {
+          this.historyTableData = response.data
+          this.historyPagination.total = response.count || 0
+          console.log('设置表格数据:', this.historyTableData)
+          console.log('设置总数:', this.historyPagination.total)
+        } else {
+          this.historyTableData = []
+          this.historyPagination.total = 0
+          console.log('没有数据，清空表格')
+        }
+      } catch (error) {
+        console.error('获取历史记录失败:', error)
+        this.$message.error('获取历史记录失败: ' + (error.message || '未知错误'))
+        this.historyTableData = []
+        this.historyPagination.total = 0
+      } finally {
+        this.historyLoading = false
+      }
+    },
+    
+    // 历史记录搜索
+    handleHistorySearch() {
+      this.historyPagination.current = 1
+      this.fetchHistoryData()
+    },
+    
+    // 重置历史记录搜索
+    handleHistoryReset() {
+      this.resetHistorySearch()
+      this.fetchHistoryData()
+    },
+    
+    // 重置历史记录搜索表单
+    resetHistorySearch() {
+      this.historySearchForm = {
+        barcodeNo: '',
+        productName: '',
+        operatorName: '',
+        timeRange: []
+      }
+      this.historyPagination.current = 1
+    },
+    
+    // 历史记录分页大小改变
+    handleHistorySizeChange(val) {
+      this.historyPagination.size = val
+      this.historyPagination.current = 1
+      this.fetchHistoryData()
+    },
+    
+    // 历史记录当前页改变
+    handleHistoryCurrentChange(val) {
+      this.historyPagination.current = val
+      this.fetchHistoryData()
+    },
+    
+
+    
+    // 格式化日期时间
+    formatDateTime(dateTime) {
+      if (!dateTime) return ''
+      const date = new Date(dateTime)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      const seconds = String(date.getSeconds()).padStart(2, '0')
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
     }
   }
 }
@@ -296,5 +538,36 @@ export default {
 }
 .el-table {
   background: #fff;
+}
+
+/* 历史记录相关样式 */
+.history-search {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #f5f7fa;
+  border-radius: 4px;
+}
+
+.search-form {
+  margin-bottom: 0;
+}
+
+.history-table {
+  margin-bottom: 20px;
+}
+
+.history-table ::v-deep .el-table__header {
+  background-color: #f5fafc;
+}
+
+.history-table ::v-deep .el-table__header th {
+  background-color: #f5f7fa;
+  color: #606266;
+  font-weight: 600;
+}
+
+.history-pagination {
+  text-align: right;
+  margin-top: 15px;
 }
 </style>

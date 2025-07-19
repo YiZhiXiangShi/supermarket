@@ -60,5 +60,13 @@ export default {
             url: `${api_name}/rfid/${rfidCardNo}`,
             method: 'get'
         })
+    },
+    
+    // 检查工号是否存在
+    checkEmployeeIdExists(employeeId) {
+        return request({
+            url: `${api_name}/check/${employeeId}`,
+            method: 'get'
+        })
     }
 }

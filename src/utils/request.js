@@ -5,7 +5,7 @@ import { getToken, setToken, removeToken } from '@/utils/auth'
 
 // create an axios instance
 const service = axios.create({
-  baseURL: process.env.VUE_APP_BASE_API, 
+  baseURL: '/api', 
   timeout: 5000 // request timeout
 })
 
@@ -23,12 +23,17 @@ service.interceptors.request.use(
     return Promise.reject(error)
   }
 )
-// 响应拦截器// 响应拦截器
+// 响应拦截器
 service.interceptors.response.use(
   response => {
+    // 如果是blob类型（文件下载），直接返回完整响应
+    if (response.config.responseType === 'blob') {
+      return response;
+    }
+    
     const res = response.data
     
-    // 处理业务错误码
+    // 处理业务错误码 - 只有当响应包含code字段时才进行错误检查
     if (res && typeof res.code !== 'undefined') {
       if (res.code !== 0 && res.code !== 200) {
         Message({

@@ -14,10 +14,12 @@
         <el-table-column prop="endTime" label="结束时间" />
         <el-table-column prop="status" label="状态" />
         <el-table-column prop="remark" label="备注" />
-        <el-table-column label="操作" width="200">
+        <el-table-column prop="barcode" label="条形码" />
+        <el-table-column label="操作" width="280">
           <template #default="scope">
             <el-button size="mini" @click="openDialog(scope.row)">编辑</el-button>
             <el-button size="mini" type="danger" @click="handleDelete(scope.row.detailId)">删除</el-button>
+            <el-button size="mini" type="success" @click="generateBarcode(scope.row)">生成条形码</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -75,6 +77,9 @@
         <el-form-item label="备注" prop="remark">
           <el-input v-model="form.remark" />
         </el-form-item>
+        <el-form-item label="条形码" prop="barcode">
+          <el-input v-model="form.barcode" placeholder="请输入条形码编号" />
+        </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -109,7 +114,8 @@ export default {
         startTime: '',
         endTime: '',
         status: 1,
-        remark: ''
+        remark: '',
+        barcode: ''
       },
       products: [],
       promotionTypes: [],
@@ -164,7 +170,8 @@ export default {
           startTime: '',
           endTime: '',
           status: 1,
-          remark: ''
+          remark: '',
+          barcode: ''
         }
       }
       this.dialogVisible = true
@@ -216,6 +223,85 @@ export default {
         callback(new Error('结束时间必须大于开始时间'));
       } else {
         callback();
+      }
+    },
+    async generateBarcode(row) {
+      if (!row.barcode) {
+        this.$message.warning('请先设置条形码编号！');
+        return;
+      }
+      
+      try {
+        this.$message.info('正在生成条形码...');
+        
+        // 使用axios而不是fetch，避免跨域问题
+        const response = await this.$http({
+          url: `/api/promotion-products/${row.detailId}/barcode`,
+          method: 'GET',
+          params: { barcode: row.barcode },
+          responseType: 'blob', // 重要：设置响应类型为blob
+          timeout: 10000
+        });
+        
+        // 检查响应内容类型
+        const contentType = response.headers['content-type'];
+        if (contentType && contentType.includes('application/json')) {
+          // 如果是JSON响应，说明是错误信息
+          const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              const errorData = JSON.parse(reader.result);
+              this.$message.error(errorData.error || '生成条形码失败');
+            } catch (e) {
+              this.$message.error('解析错误信息失败');
+            }
+          };
+          reader.readAsText(response.data);
+          return;
+        }
+        
+        // 验证blob数据
+        if (!response.data || response.data.size === 0) {
+          this.$message.error('生成的条形码数据为空');
+          return;
+        }
+        
+        // 创建下载链接
+        const blob = new Blob([response.data], { type: 'image/png' });
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `barcode_${row.barcode}.png`;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // 清理URL对象
+        window.URL.revokeObjectURL(downloadUrl);
+        
+        this.$message.success('条形码生成成功，正在下载...');
+      } catch (error) {
+        console.error('生成条形码失败:', error);
+        
+        // 处理不同类型的错误
+        if (error.response) {
+          // 服务器返回错误状态码
+          const status = error.response.status;
+          if (status === 404) {
+            this.$message.error('活动商品记录不存在');
+          } else if (status === 400) {
+            this.$message.error('条形码内容不能为空，请先设置条形码编号');
+          } else {
+            this.$message.error(`生成条形码失败: ${error.response.data || '服务器错误'}`);
+          }
+        } else if (error.request) {
+          // 网络错误
+          this.$message.error('网络连接失败，请检查网络设置');
+        } else {
+          // 其他错误
+          this.$message.error(`生成条形码失败: ${error.message}`);
+        }
       }
     }
   }

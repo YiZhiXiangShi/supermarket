@@ -106,24 +106,25 @@ export default {
       this.$refs.loginForm.validate(valid => {
         if (valid) {
           this.loading = true
+          console.log('=== 登录流程开始 ===')
           console.log('开始登录，表单数据:', this.loginForm)
           console.log('重定向路径:', this.redirect)
           
           //向后端发起登录请求  1.请求路径   2.提交参数用户名和密码
           this.$store.dispatch('user/login', this.loginForm).then(() => {
-            console.log('登录成功，准备跳转')
+            console.log('=== 登录成功，准备跳转 ===')
             console.log('当前Vuex状态:', this.$store.state.user)
             console.log('跳转目标路径:', this.redirect || '/')
             
             this.$router.push({ path: this.redirect || '/' }).then(() => {
-              console.log('路由跳转成功')
+              console.log('=== 路由跳转成功 ===')
+              this.loading = false
             }).catch(err => {
-              console.error('路由跳转失败:', err)
+              console.error('=== 路由跳转失败 ===', err)
+              this.loading = false
             })
-            
-            this.loading = false
           }).catch((error) => {
-            console.error('登录失败:', error)
+            console.error('=== 登录失败 ===', error)
             this.loading = false
           })
         } else {

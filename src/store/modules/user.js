@@ -57,11 +57,14 @@ const actions = {
   // user login
   login({ commit }, userInfo) {
     const { username, password } = userInfo
+    console.log('=== 用户状态管理 - 开始登录 ===')
+    console.log('登录参数:', { username: username.trim(), password: password })
     return new Promise((resolve, reject) => {
       login({ username: username.trim(), password: password }).then(response => {
         //获取token和用户信息
-        const { token, employeeId, name, photo } = response.data
-        console.log('登录响应原始数据:', response.data)
+        // 响应拦截器已经返回了 res.data，所以这里直接使用 response
+        const { token, employeeId, name, photo } = response
+        console.log('登录响应原始数据:', response)
         console.log('登录响应employeeId类型:', typeof employeeId, employeeId)
 
         //存储token
@@ -90,7 +93,8 @@ const actions = {
         commit('SET_PHOTO', photo)
         
         console.log('登录后Vuex状态:', { employeeId: employeeIdStr, name, photo })
-        resolve()
+        console.log('=== 用户状态管理 - 登录成功，准备resolve ===')
+        resolve(response.data)
       
       }).catch(error => {
         reject(error)

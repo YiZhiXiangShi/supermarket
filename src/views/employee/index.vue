@@ -736,7 +736,6 @@ export default {
         this.$message.warning('请输入搜索内容')
         return
       }
-<<<<<<< HEAD
       
       // 如果是员工号搜索，验证输入是否为数字
       if (this.searchType === 'employeeId') {
@@ -751,8 +750,6 @@ export default {
         }
       }
       
-=======
->>>>>>> aba7be8bb249bd5cd134bcaf8f6638b7a4eb4886
       this.loading = true
       try {
         const params = {
@@ -934,14 +931,19 @@ export default {
             
             const response = await employeeApi.save(submitData)
             console.log('添加员工响应:', response)
+            console.log('响应类型:', typeof response)
+            console.log('响应code:', response.code)
+            console.log('响应message:', response.message)
+            console.log('响应data:', response.data)
             
-            if (response.code === 200) {
+            // 如果响应是布尔值true，说明添加成功
+            if (response === true || (response && response.code === 200)) {
               this.$message.success('添加员工成功')
               this.resetForm()
               this.switchView('view')
               this.fetchData() // 刷新员工列表
             } else {
-              this.$message.error(response.message || '添加失败')
+              this.$message.error((response && response.message) || '添加失败')
             }
           } catch (error) {
             console.error('添加员工失败:', error)
@@ -962,6 +964,7 @@ export default {
       this.$refs.editForm.validate(async (valid) => {
         if (valid) {
           this.submitLoading = true
+          console.log('=== 开始编辑提交 ===')
           try {
             const submitData = { ...this.editForm }
             
@@ -988,26 +991,25 @@ export default {
             }
             
             console.log('编辑提交数据:', submitData)
-<<<<<<< HEAD
             console.log('deletePhoto标识:', submitData.deletePhoto)
             const response = await employeeApi.update(submitData)
             console.log('更新响应:', response)
-            if (response.code === 200) {
+            console.log('响应类型:', typeof response)
+            
+            // 如果响应是布尔值true，说明更新成功
+            if (response === true || (response && response.code === 200)) {
+              console.log('=== 更新成功 ===')
               this.$message.success('更新成功')
               this.dialogVisible = false
               this.fetchData()
             } else {
-              this.$message.error(response.message || '更新失败')
+              console.log('=== 更新失败 ===')
+              this.$message.error((response && response.message) || '更新失败')
             }
-=======
-            await employeeApi.update(submitData)
-            this.$message.success('更新成功')
-            this.dialogVisible = false
-            this.fetchData()
->>>>>>> aba7be8bb249bd5cd134bcaf8f6638b7a4eb4886
           } catch (error) {
-            console.error('更新失败:', error)
-            this.$message.error('更新失败: ' + (error.message || '未知错误'))
+            console.error('=== 更新异常 ===', error)
+            console.error('错误详情:', error.response?.data)
+            this.$message.error('更新失败: ' + (error.response?.data?.message || error.message || '未知错误'))
           } finally {
             this.submitLoading = false
           }
@@ -1122,11 +1124,46 @@ export default {
     },
     
     // 生成员工工号
-    generateEmployeeId() {
-      // 生成一个随机的4位数工号
-      const randomId = Math.floor(1000 + Math.random() * 9000)
-      this.form.employeeId = randomId
-      this.$message.success(`已生成工号: ${randomId}`)
+    async generateEmployeeId() {
+      this.$message.info('正在生成工号...')
+      
+      let attempts = 0
+      const maxAttempts = 10 // 最大尝试次数
+      
+      while (attempts < maxAttempts) {
+        attempts++
+        
+        // 生成一个随机的4位数工号
+        const randomId = Math.floor(1000 + Math.random() * 9000)
+        
+        try {
+          // 检查工号是否已存在
+          const response = await employeeApi.checkEmployeeIdExists(randomId)
+          const exists = response.data || response
+          
+          if (!exists) {
+            // 工号不存在，可以使用
+            this.form.employeeId = randomId
+            this.$message.success(`已生成工号: ${randomId}`)
+            console.log(`工号生成成功，尝试次数: ${attempts}`)
+            return
+          } else {
+            console.log(`工号 ${randomId} 已存在，重新生成...`)
+          }
+        } catch (error) {
+          console.error('检查工号是否存在时出错:', error)
+          // 如果检查失败，直接使用生成的工号
+          this.form.employeeId = randomId
+          this.$message.warning(`生成工号: ${randomId} (未验证唯一性)`)
+          return
+        }
+      }
+      
+      // 如果尝试次数过多，使用时间戳生成工号
+      const timestampId = Math.floor(1000 + (Date.now() % 9000))
+      this.form.employeeId = timestampId
+      this.$message.warning(`生成工号: ${timestampId} (使用备用方案)`)
+      console.log(`工号生成失败，使用备用方案，尝试次数: ${attempts}`)
     },
     
     // 文件转base64

@@ -94,7 +94,7 @@ const actions = {
         
         console.log('登录后Vuex状态:', { employeeId: employeeIdStr, name, photo })
         console.log('=== 用户状态管理 - 登录成功，准备resolve ===')
-        resolve(response.data)
+        resolve(response)
       
       }).catch(error => {
         reject(error)

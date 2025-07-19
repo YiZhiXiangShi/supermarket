@@ -16,6 +16,8 @@ import '@/icons' // icon
 import '@/permission' // permission control
 import dialogDrag from '@/directives/dialogDrag'
 
+// 导入axios实例
+import request from '@/utils/request'
 
 if (process.env.NODE_ENV === 'production') {
   const { mockXHR } = require('../mock')
@@ -30,6 +32,9 @@ if (process.env.NODE_ENV === 'production') {
 Vue.config.productionTip = false
 
 Vue.directive('dialogDrag', dialogDrag)
+
+// 将axios实例挂载到Vue原型上
+Vue.prototype.$http = request
 
 new Vue({
   el: '#app',

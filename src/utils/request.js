@@ -23,9 +23,14 @@ service.interceptors.request.use(
     return Promise.reject(error)
   }
 )
-// 响应拦截器// 响应拦截器
+// 响应拦截器
 service.interceptors.response.use(
   response => {
+    // 如果是blob类型（文件下载），直接返回完整响应
+    if (response.config.responseType === 'blob') {
+      return response;
+    }
+    
     const res = response.data
     
     // 处理业务错误码

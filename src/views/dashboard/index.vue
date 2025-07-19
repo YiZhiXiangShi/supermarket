@@ -52,13 +52,18 @@ function uuidv4() {
 export default {
   name: 'Dashboard',
   data() {
+    // 读取本地 chatId 和历史消息
+    const chatId = localStorage.getItem('ai_chat_id') || uuidv4()
+    if (!localStorage.getItem('ai_chat_id')) {
+      localStorage.setItem('ai_chat_id', chatId)
+    }
     return {
-      messages: [],
+      messages: JSON.parse(localStorage.getItem('ai_messages') || '[]'),
       input: '',
       loading: false,
       streaming: false,
       streamReply: '',
-      chatId: uuidv4()
+      chatId
     }
   },
   methods: {
@@ -66,6 +71,8 @@ export default {
       const content = this.input && this.input.trim()
       if (!content || this.loading) return
       this.messages.push({ role: 'user', content })
+      // 保存历史
+      localStorage.setItem('ai_messages', JSON.stringify(this.messages))
       this.input = ''
       this.loading = true
       this.streaming = true
@@ -89,8 +96,11 @@ export default {
           }
         }
         this.messages.push({ role: 'bot', content: this.streamReply })
+        // 保存历史
+        localStorage.setItem('ai_messages', JSON.stringify(this.messages))
       } catch (e) {
         this.messages.push({ role: 'bot', content: 'AI服务异常，请稍后再试。' })
+        localStorage.setItem('ai_messages', JSON.stringify(this.messages))
       }
       this.loading = false
       this.streaming = false
@@ -100,6 +110,10 @@ export default {
         if (box) box.scrollTop = box.scrollHeight
       })
     }
+  },
+  mounted() {
+    // 页面挂载时同步本地历史（防止data被重置时丢失）
+    this.messages = JSON.parse(localStorage.getItem('ai_messages') || '[]')
   }
 }
 </script>

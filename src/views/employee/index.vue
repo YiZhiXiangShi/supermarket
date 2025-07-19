@@ -111,6 +111,10 @@
                 <el-radio label="女">女</el-radio>
               </el-radio-group>
             </el-form-item>
+            
+            <el-form-item label=" 联系电话" prop="phone">
+              <el-input v-model="form.phone" placeholder="请输入手机号码"></el-input>
+            </el-form-item>
           </el-col>
           
           <!-- 右列 -->
@@ -183,6 +187,7 @@
           v-model="searchValue" 
           :placeholder="getSearchPlaceholder()"
           class="search-input"
+          @input="handleSearchInput"
           clearable>
         </el-input>
         
@@ -262,36 +267,59 @@
       <el-form :model="editForm" :rules="rules" ref="editForm" label-width="120">
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="* 工号" prop="employeeId">
+            <el-form-item label=" 工号" prop="employeeId">
               <el-input v-model="editForm.employeeId" :disabled="dialogMode === 'view'"></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="* 姓名" prop="name">
+            <el-form-item label=" 姓名" prop="name">
               <el-input v-model="editForm.name" :disabled="dialogMode === 'view'"></el-input>
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="* 身份证号" prop="idCardNo">
+            <el-form-item label=" 身份证号" prop="idCardNo">
               <el-input v-model="editForm.idCardNo" :disabled="dialogMode === 'view'"></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="* RFID卡号" prop="rfidCardNo">
+            <el-form-item label=" RFID卡号" prop="rfidCardNo">
               <el-input v-model="editForm.rfidCardNo" :disabled="dialogMode === 'view'"></el-input>
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="* 联系电话" prop="phone">
+            <el-form-item label="密码" prop="password">
+              <el-input 
+                v-model="editForm.password" 
+                :type="dialogMode === 'view' ? 'text' : 'password'"
+                :placeholder="dialogMode === 'view' ? '密码' : '留空则不修改密码'"
+                :disabled="dialogMode === 'view'"
+                :show-password="dialogMode !== 'view'">
+              </el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12" v-if="dialogMode === 'edit'">
+            <el-form-item label="确认密码" prop="confirmPassword">
+              <el-input 
+                v-model="editForm.confirmPassword" 
+                type="password" 
+                placeholder="请再次输入密码"
+                show-password>
+              </el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label=" 联系电话" prop="phone">
               <el-input v-model="editForm.phone" :disabled="dialogMode === 'view'"></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="* 在职状态" prop="status">
+            <el-form-item label=" 在职状态" prop="status">
               <el-select v-model="editForm.status" :disabled="dialogMode === 'view'" style="width: 100%">
                 <el-option label="在职" value="在职"></el-option>
                 <el-option label="离职" value="离职"></el-option>
@@ -301,7 +329,7 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="* 操作员等级" prop="operatorLevel">
+            <el-form-item label=" 操作员等级" prop="operatorLevel">
               <el-select v-model="editForm.operatorLevel" :disabled="dialogMode === 'view'" style="width: 100%">
                 <el-option label="1" :value="1"></el-option>
                 <el-option label="2" :value="2"></el-option>
@@ -310,7 +338,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="* 性别" prop="gender">
+            <el-form-item label=" 性别" prop="gender">
               <el-select v-model="editForm.gender" :disabled="dialogMode === 'view'" style="width: 100%">
                 <el-option label="男" value="男"></el-option>
                 <el-option label="女" value="女"></el-option>
@@ -422,12 +450,15 @@ export default {
         gender: '男',
         idCardNo: '',
         rfidCardNo: '',
+        password: '',
+        confirmPassword: '',
         phone: '',
         status: '在职',
         operatorLevel: 1,
         birthDate: '',
         hireDate: '',
-        photo: null
+        photo: null,
+        deletePhoto: false
       },
       
       // 编辑照片预览
@@ -448,7 +479,23 @@ export default {
           { required: true, message: '请输入RFID卡号', trigger: 'blur' }
         ],
         password: [
-          { required: true, message: '请输入密码', trigger: 'blur' }
+          { 
+            validator: (rule, value, callback) => {
+              // 编辑模式下密码可选，新增模式下必填
+              if (this.dialogMode === 'edit') {
+                callback() // 编辑模式下密码可选
+              } else if (!value || value.trim() === '') {
+                callback(new Error('请输入密码'))
+              } else {
+                callback()
+              }
+            }, 
+            trigger: 'blur' 
+          }
+        ],
+        confirmPassword: [
+          { required: false, message: '请确认密码', trigger: 'blur' },
+          { validator: this.validateConfirmPassword, trigger: 'blur' }
         ],
         phone: [
           { required: true, message: '请输入联系电话', trigger: 'blur' },
@@ -483,6 +530,19 @@ export default {
     this.fetchData()
   },
   
+  watch: {
+    // 监听密码字段变化，清除确认密码的验证错误
+    'editForm.password': function(newVal) {
+      if (!newVal || newVal.trim() === '') {
+        this.$nextTick(() => {
+          if (this.$refs.editForm) {
+            this.$refs.editForm.clearValidate(['confirmPassword'])
+          }
+        })
+      }
+    }
+  },
+  
   beforeDestroy() {
     // 组件销毁时清理照片预览URL
     if (this.photoPreview) {
@@ -493,6 +553,29 @@ export default {
     }
   },
   methods: {
+    // 密码确认验证
+    validateConfirmPassword(rule, value, callback) {
+      // 查看模式下不需要验证确认密码
+      if (this.dialogMode === 'view') {
+        callback()
+        return
+      }
+      
+      // 如果密码为空，则确认密码也不需要验证
+      if (!this.editForm.password || this.editForm.password.trim() === '') {
+        callback()
+        return
+      }
+      
+      if (!value) {
+        callback(new Error('请输入确认密码'))
+      } else if (value !== this.editForm.password) {
+        callback(new Error('两次输入的密码不一致'))
+      } else {
+        callback()
+      }
+    },
+    
     // 切换视图
     switchView(view) {
       this.currentView = view
@@ -508,7 +591,7 @@ export default {
     // 获取搜索占位符
     getSearchPlaceholder() {
       const placeholders = {
-        employeeId: '请输入员工工号',
+        employeeId: '请输入数字工号',
         name: '请输入员工姓名',
         status: '请选择在职状态'
       }
@@ -571,6 +654,24 @@ export default {
       this.searchResults = []
       this.searchPagination.current = 1
       this.searchPagination.total = 0
+      
+      // 如果切换到员工工号搜索，给出提示
+      if (this.searchType === 'employeeId') {
+        this.$message.info('员工工号搜索：请输入数字工号')
+      }
+    },
+    
+    // 搜索输入验证
+    handleSearchInput(value) {
+      // 如果是员工工号搜索，只允许输入数字
+      if (this.searchType === 'employeeId') {
+        // 移除非数字字符
+        const numericValue = value.replace(/[^\d]/g, '')
+        if (numericValue !== value) {
+          this.searchValue = numericValue
+          this.$message.warning('员工工号只能输入数字')
+        }
+      }
     },
     
     // 搜索分页大小改变
@@ -643,6 +744,19 @@ export default {
         return
       }
       
+      // 如果是员工号搜索，验证输入是否为数字
+      if (this.searchType === 'employeeId') {
+        const employeeId = parseInt(this.searchValue)
+        if (isNaN(employeeId)) {
+          this.$message.error('员工工号必须是数字，请输入正确的工号')
+          return
+        }
+        if (employeeId <= 0) {
+          this.$message.error('员工工号必须是正整数')
+          return
+        }
+      }
+      
       this.loading = true
       try {
         const params = {
@@ -695,7 +809,12 @@ export default {
     handleEdit(row) {
       this.dialogMode = 'edit'
       this.dialogTitle = '修改员工'
-      this.editForm = { ...row }
+      this.editForm = { 
+        ...row, 
+        deletePhoto: false,
+        password: '', // 清空密码字段
+        confirmPassword: '' // 清空确认密码字段
+      }
       
       // 清理之前的编辑照片预览
       if (this.editPhotoPreview) {
@@ -717,14 +836,34 @@ export default {
         }
       }
       
+      console.log('编辑员工，照片预览:', this.editPhotoPreview)
       this.dialogVisible = true
+      
+      // 清除密码字段的验证错误
+      this.$nextTick(() => {
+        if (this.$refs.editForm) {
+          this.$refs.editForm.clearValidate(['password', 'confirmPassword'])
+        }
+      })
     },
     
     // 查看
     handleView(row) {
       this.dialogMode = 'view'
       this.dialogTitle = '查看员工'
-      this.editForm = { ...row }
+      
+      console.log('查看员工数据:', row)
+      console.log('员工密码字段:', row.password)
+      console.log('密码字段类型:', typeof row.password)
+      console.log('密码字段长度:', row.password ? row.password.length : 0)
+      
+      this.editForm = { 
+        ...row,
+        password: row.password ? '******' : '未设置', // 显示星号或未设置
+        confirmPassword: '' // 查看时不需要确认密码
+      }
+      
+      console.log('编辑表单数据:', this.editForm)
       
       // 清理之前的编辑照片预览
       if (this.editPhotoPreview) {
@@ -840,11 +979,20 @@ export default {
           try {
             const submitData = { ...this.editForm }
             
+            // 如果密码为空，则不提交密码字段
+            if (!this.editForm.password) {
+              delete submitData.password
+            }
+            // 删除确认密码字段，不需要提交到后端
+            delete submitData.confirmPassword
+            
             // 如果有新上传的照片，转换为base64
             if (this.editForm.photo && this.editForm.photo instanceof File) {
               try {
                 const base64 = await this.fileToBase64(this.editForm.photo)
                 submitData.photo = base64.split(',')[1] // 移除data:image/xxx;base64,前缀
+                // 有新照片时，清除删除标识
+                submitData.deletePhoto = false
               } catch (error) {
                 console.error('照片转换失败:', error)
                 this.$message.error('照片处理失败')
@@ -854,7 +1002,9 @@ export default {
             }
             
             console.log('编辑提交数据:', submitData)
+            console.log('deletePhoto标识:', submitData.deletePhoto)
             const response = await employeeApi.update(submitData)
+            console.log('更新响应:', response)
             if (response.code === 200) {
               this.$message.success('更新成功')
               this.dialogVisible = false
@@ -955,10 +1105,16 @@ export default {
     // 删除编辑照片
     removeEditPhoto() {
       this.editForm.photo = null
+      // 设置一个特殊标识，告诉后端要删除照片
+      this.editForm.deletePhoto = true
+      // 清除照片预览
       if (this.editPhotoPreview) {
         URL.revokeObjectURL(this.editPhotoPreview)
         this.editPhotoPreview = null
       }
+      // 清除原始照片数据
+      this.editForm.photo = null
+      console.log('删除照片，deletePhoto标识设置为:', this.editForm.deletePhoto)
       this.$message.info('照片已删除')
     },
     

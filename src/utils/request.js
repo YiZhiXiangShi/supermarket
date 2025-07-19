@@ -5,7 +5,7 @@ import { getToken, setToken, removeToken } from '@/utils/auth'
 
 // create an axios instance
 const service = axios.create({
-  baseURL: process.env.VUE_APP_BASE_API, 
+  baseURL: '/api', 
   timeout: 5000 // request timeout
 })
 
@@ -28,14 +28,14 @@ service.interceptors.response.use(
   response => {
     const res = response.data
   
-    if (res.code !== 0) {
+    if (res.code !== 200) {
       Message({
-        message: res.msg || 'Error',
+        message: res.message || res.msg || 'Error',
         type: 'error',
         duration: 5 * 1000
       })
       
-      return Promise.reject(new Error(res.msg || 'Error'))
+      return Promise.reject(new Error(res.message || res.msg || 'Error'))
     } else {
 
       //请求成功  存储后端生成的新的token

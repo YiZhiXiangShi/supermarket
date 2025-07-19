@@ -4,6 +4,7 @@
 
       <div class="title-container">
         <h3 class="title">超市收银管理系统</h3>
+        <p class="subtitle">员工登录</p>
       </div>
 
       <el-form-item prop="username">
@@ -13,7 +14,7 @@
         <el-input
           ref="username"
           v-model="loginForm.username"
-          placeholder="用户名"
+          placeholder="请输入工号、卡号或刷卡"
           name="username"
           type="text"
           tabindex="1"
@@ -30,7 +31,7 @@
           ref="password"
           v-model="loginForm.password"
           :type="passwordType"
-          placeholder="密码"
+          placeholder="请输入密码"
           name="password"
           tabindex="2"
           auto-complete="on"
@@ -49,21 +50,21 @@
 </template>
 
 <script>
-import { validUsername } from '@/utils/validate'
-
 export default {
   name: 'Login',
   data() {
     const validateUsername = (rule, value, callback) => {
-      if (!validUsername(value)) {
-        callback(new Error('用户名必须填写'))
+      if (!value || value.trim() === '') {
+        callback(new Error('请输入员工号或卡号'))
       } else {
         callback()
       }
     }
     const validatePassword = (rule, value, callback) => {
-      if (value.length < 5) {
-        callback(new Error('密码至少需要5位长度'))
+      if (!value || value.trim() === '') {
+        callback(new Error('请输入密码'))
+      } else if (value.length < 3) {
+        callback(new Error('密码至少需要3位长度'))
       } else {
         callback()
       }
@@ -105,15 +106,28 @@ export default {
       this.$refs.loginForm.validate(valid => {
         if (valid) {
           this.loading = true
+          console.log('开始登录，表单数据:', this.loginForm)
+          console.log('重定向路径:', this.redirect)
+          
           //向后端发起登录请求  1.请求路径   2.提交参数用户名和密码
           this.$store.dispatch('user/login', this.loginForm).then(() => {
-            this.$router.push({ path: this.redirect || '/' })
+            console.log('登录成功，准备跳转')
+            console.log('当前Vuex状态:', this.$store.state.user)
+            console.log('跳转目标路径:', this.redirect || '/')
+            
+            this.$router.push({ path: this.redirect || '/' }).then(() => {
+              console.log('路由跳转成功')
+            }).catch(err => {
+              console.error('路由跳转失败:', err)
+            })
+            
             this.loading = false
-          }).catch(() => {
+          }).catch((error) => {
+            console.error('登录失败:', error)
             this.loading = false
           })
         } else {
-          console.log('error submit!!')
+          console.log('表单验证失败')
           return false
         }
       })
@@ -215,9 +229,16 @@ $light_gray:#eee;
     .title {
       font-size: 26px;
       color: $light_gray;
-      margin: 0px auto 40px auto;
+      margin: 0px auto 10px auto;
       text-align: center;
       font-weight: bold;
+    }
+    
+    .subtitle {
+      font-size: 16px;
+      color: $dark_gray;
+      margin: 0px auto 40px auto;
+      text-align: center;
     }
   }
 

@@ -19,11 +19,11 @@
           accept=".xls,.xlsx"
           :auto-upload="false"
         >
-          <el-link type="primary">导入excel文件</el-link>
+          <el-button type="primary" icon="el-icon-upload2">导入Excel文件</el-button>
         </el-upload>
       </el-form-item>
       <el-form-item>
-        <el-button type="info" icon="el-icon-time" @click="showHistoryDialog">
+        <el-button type="primary" icon="el-icon-time" @click="showHistoryDialog">
           历史记录
         </el-button>
       </el-form-item>
@@ -51,6 +51,18 @@
       :visible.sync="historyDialogVisible" 
       width="1200px"
       :before-close="handleHistoryDialogClose">
+      
+      <!-- 导出按钮 -->
+      <div class="export-section" style="margin-bottom: 15px; text-align: right;">
+        <el-button 
+          type="success" 
+          icon="el-icon-download" 
+          @click="exportToExcel"
+          :loading="exportLoading"
+          :disabled="!historyTableData.length">
+          导出Excel
+        </el-button>
+      </div>
       
               <!-- 搜索条件 -->
         <div class="history-search">
@@ -162,7 +174,10 @@ export default {
         current: 1,
         size: 10,
         total: 0
-      }
+      },
+      
+      // 导出相关数据
+      exportLoading: false
     }
   },
   methods: {
@@ -500,6 +515,63 @@ export default {
       const minutes = String(date.getMinutes()).padStart(2, '0')
       const seconds = String(date.getSeconds()).padStart(2, '0')
       return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+    },
+    
+    // 导出Excel文件
+    async exportToExcel() {
+      if (!this.historyTableData.length) {
+        this.$message.warning('没有数据可导出')
+        return
+      }
+      
+      this.exportLoading = true
+      try {
+        // 动态导入XLSX库
+        const XLSX = await import('xlsx')
+        
+        // 准备导出数据
+        const exportData = this.historyTableData.map(item => ({
+          '商品条码': item.barcodeNo,
+          '商品名称': item.productName,
+          '单位': item.unit,
+          '上货数量': item.quantity,
+          '操作员': item.operatorName,
+          '创建时间': this.formatDateTime(item.createTime)
+        }))
+        
+        // 创建工作簿
+        const workBook = XLSX.utils.book_new()
+        const workSheet = XLSX.utils.json_to_sheet(exportData)
+        
+        // 设置列宽
+        const colWidths = [
+          { wch: 15 }, // 商品条码
+          { wch: 20 }, // 商品名称
+          { wch: 8 },  // 单位
+          { wch: 10 }, // 上货数量
+          { wch: 12 }, // 操作员
+          { wch: 20 }  // 创建时间
+        ]
+        workSheet['!cols'] = colWidths
+        
+        // 添加工作表到工作簿
+        XLSX.utils.book_append_sheet(workBook, workSheet, '上货历史记录')
+        
+        // 生成文件名
+        const now = new Date()
+        const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`
+        const fileName = `上货历史记录_${timestamp}.xlsx`
+        
+        // 导出文件
+        XLSX.writeFile(workBook, fileName)
+        
+        this.$message.success('导出成功')
+      } catch (error) {
+        console.error('导出Excel文件时出错:', error)
+        this.$message.error('导出失败: ' + error.message)
+      } finally {
+        this.exportLoading = false
+      }
     }
   }
 }

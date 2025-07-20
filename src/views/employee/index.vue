@@ -43,13 +43,14 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="operatorLevel" label="操作员等级" width="100" align="center">
-          <template slot-scope="scope">
-            <el-tag v-if="scope.row.operatorLevel === 1" type="info" size="mini">{{ scope.row.operatorLevel }}</el-tag>
-            <el-tag v-else-if="scope.row.operatorLevel === 2" type="warning" size="mini">{{ scope.row.operatorLevel }}</el-tag>
-            <el-tag v-else-if="scope.row.operatorLevel === 3" type="success" size="mini">{{ scope.row.operatorLevel }}</el-tag>
-          </template>
-        </el-table-column>
+                  <el-table-column prop="operatorLevel" label="操作员等级" width="100" align="center">
+            <template slot-scope="scope">
+              <el-tag v-if="scope.row.operatorLevel === 1" type="info" size="mini">{{ scope.row.operatorLevel }}</el-tag>
+              <el-tag v-else-if="scope.row.operatorLevel === 2" type="warning" size="mini">{{ scope.row.operatorLevel }}</el-tag>
+              <el-tag v-else-if="scope.row.operatorLevel === 3" type="success" size="mini">{{ scope.row.operatorLevel }}</el-tag>
+              <el-tag v-else type="danger" size="mini">未知</el-tag>
+            </template>
+          </el-table-column>
         <el-table-column label="操作" width="180" align="center">
           <template slot-scope="scope">
             <el-button size="mini" type="danger" @click="handleEdit(scope.row)">修改</el-button>
@@ -237,6 +238,7 @@
               <el-tag v-if="scope.row.operatorLevel === 1" type="info" size="mini">{{ scope.row.operatorLevel }}</el-tag>
               <el-tag v-else-if="scope.row.operatorLevel === 2" type="warning" size="mini">{{ scope.row.operatorLevel }}</el-tag>
               <el-tag v-else-if="scope.row.operatorLevel === 3" type="success" size="mini">{{ scope.row.operatorLevel }}</el-tag>
+              <el-tag v-else type="danger" size="mini">未知</el-tag>
             </template>
           </el-table-column>
           <el-table-column label="操作" width="180" align="center">

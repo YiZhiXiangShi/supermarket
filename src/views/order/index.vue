@@ -159,6 +159,10 @@
                 </template>
               </el-table-column>
             </el-table>
+            <div style="text-align: right; margin-top: 10px;">
+              <span style="font-weight: bold;">总价：</span>
+              <span style="color: #409EFF; font-size: 18px;">¥{{ selectedOrder.totalAmount }}</span>
+            </div>
           </div>
         </div>
       </el-dialog>
@@ -240,13 +244,11 @@ export default {
           // 处理订单数据，按订单ID分组
           const orderMap = new Map()
           detailRes.data.forEach(item => {
-            console.log('处理订单项:', item)
             if (!orderMap.has(item.orderId)) {
               orderMap.set(item.orderId, {
                 orderId: item.orderId,
                 orderTime: item.orderTime,
                 cashier: item.cashier,
-                totalAmount: item.totalAmount,
                 paymentStatus: item.paymentStatus,
                 items: []
               })
@@ -258,6 +260,10 @@ export default {
               actualPrice: item.actualPrice,
               subtotal: item.subtotal
             })
+          })
+          // 计算每个订单的总价
+          orderMap.forEach(order => {
+            order.totalAmount = order.items.reduce((sum, i) => sum + i.subtotal, 0)
           })
           this.tableData = Array.from(orderMap.values())
           console.log('处理后的订单数据:', this.tableData)

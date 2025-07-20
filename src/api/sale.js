@@ -33,3 +33,18 @@ export function findSalename(type) {
     throw error;
   });
 }
+
+export function findorder(data) {
+  return request({
+    url: '/ordeBytime',
+    method: 'post',
+    data
+  })
+}
+export function findallorder(data) {
+  return request({
+    url: '/allorder',
+    method: 'post',
+    data
+  })
+}

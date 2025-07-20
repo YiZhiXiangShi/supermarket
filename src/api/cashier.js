@@ -14,4 +14,17 @@ export function find(barCode) {
     method: 'get',
     params: { barCode }
   })
+}
+
+/**
+ * 创建订单并扣减库存
+ * @param {Object} data 订单数据
+ * @returns {Promise}
+ */
+export function createOrder(data) {
+  return request({
+    url: '/cashier/createOrder',
+    method: 'post',
+    data
+  })
 } 

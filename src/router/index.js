@@ -93,7 +93,7 @@ export const constantRoutes = [
         path: 'product',
         name: 'promotion-product-list',
         component: () => import('@/views/promotionProduct/index.vue'),
-        meta: { title: '活动管理' }
+        meta: { title: '活动商品管理' }
       }
     ]
   },

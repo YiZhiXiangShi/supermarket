@@ -2,7 +2,7 @@
   <div class="promotion-product-container">
     <el-card>
       <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 18px; font-weight: bold;">活动管理</span>
+        <span style="font-size: 18px; font-weight: bold;">活动商品管理</span>
         <el-button type="primary" @click="openDialog()">新增活动</el-button>
       </div>
       <el-table :data="list" border stripe style="width: 100%">

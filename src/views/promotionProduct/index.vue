@@ -7,14 +7,22 @@
       </div>
       <el-table :data="list" border stripe style="width: 100%">
         <el-table-column prop="detailId" label="ID" width="80" />
-        <el-table-column prop="productSerialNo" label="商品编号" />
-        <el-table-column prop="promotionTypeId" label="活动类型ID" />
-        <el-table-column prop="discount" label="折扣" />
-        <el-table-column prop="startTime" label="开始时间" />
-        <el-table-column prop="endTime" label="结束时间" />
-        <el-table-column prop="status" label="状态" />
+        <el-table-column label="商品信息" width="200">
+          <template #default="scope">
+            {{ scope.row.productSerialNo }} - {{ scope.row.productName || '未知商品' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="活动类型" width="200">
+          <template #default="scope">
+            {{ scope.row.promotionTypeId }} - {{ scope.row.promotionTypeName || '未知类型' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="discount" label="折扣" width="80" />
+        <el-table-column prop="startTime" label="开始时间" width="160" />
+        <el-table-column prop="endTime" label="结束时间" width="160" />
+        <el-table-column prop="status" label="状态" width="80" />
         <el-table-column prop="remark" label="备注" />
-        <el-table-column prop="barcode" label="条形码" />
+        <el-table-column prop="barcode" label="条形码" width="120" />
         <el-table-column label="操作" width="280">
           <template #default="scope">
             <el-button size="mini" @click="openDialog(scope.row)">编辑</el-button>

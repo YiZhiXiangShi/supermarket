@@ -4,12 +4,10 @@
       <div slot="header" style="display: flex; align-items: center; gap: 16px;">
         <el-input
           v-model="barcode"
-          :disabled="!manualInput"
           placeholder="请输入商品条码或扫码"
           style="width: 250px;"
         />
         <el-button type="primary" @click="handleSearch">查询</el-button>
-        <el-checkbox v-model="manualInput">手动输入条码</el-checkbox>
         <el-button type="success" @click="showCheckoutDialog" style="margin-left: auto;">结账</el-button>
       </div>
       <el-table :data="tableData" style="width: 100%">
@@ -116,7 +114,6 @@ export default {
   data() {
     return {
       barcode: '', // 输入框内容
-      manualInput: false, // 是否手动输入
       tableData: [], // 商品数据
       // 结账相关
       checkoutDialogVisible: false,

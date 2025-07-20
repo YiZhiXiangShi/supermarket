@@ -52,6 +52,10 @@
         <label>日期：</label>
         <input type="date" v-model="date" class="filter-input" />
       </div>
+            <div v-if="time === '月'" class="filter-item">
+        <label>年份：</label>
+        <input type="number" v-model="year" class="filter-input" />
+      </div>
     </div>
     
     <div class="button-section">
@@ -80,6 +84,7 @@ export default {
       type: '种类', // 对应后端 private String type
       time: '月',   // 对应后端 private String time
       name: '',     // 对应后端 private String name
+      year: '2025',     // 对应后端 private String year
       date: '',     // 对应后端 private Date date
       suggestions: [], // 存储提示数据
       showSuggestions: false, // 控制提示框的显示
@@ -205,6 +210,7 @@ export default {
       const params = {
         type: this.type,
         time: this.time,
+        year: this.year,
         name: this.name,
         date: this.date
       };
@@ -311,9 +317,8 @@ export default {
           [''],
           ['查询条件'],
           ['类型', params.type],
-          ['时间', params.time],
           ['名称', params.name || '全部'],
-          ['日期', params.date || '全部'],
+          ['时间', params.time === '月' ? (params.year + '年') : (params.date || '全部')],
           [''],
           ['销售数据'],
           ['月份', '销售量']

@@ -1,7 +1,7 @@
 <template>
   <div class="stock-page">
     <el-form :inline="true" class="stock-form" @submit.native.prevent>
-      <el-form-item label="条码">
+      <el-form-item label="商品条码">
         <el-input
           v-model="barcode"
           placeholder="请扫描商品条码"
@@ -31,7 +31,7 @@
     <div class="stock-content">
       <el-table :data="tableData" border style="flex: 1 1 auto; min-width: 700px; max-width: 740px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden; background: #fafbfc;" :key="tableData.length" class="stock-table">
         <el-table-column prop="serialNo" label="流水号" width="124" align="center" />
-        <el-table-column prop="barcode" label="条码" width="185" align="center" />
+        <el-table-column prop="barcode" label="商品条码" width="185" align="center" />
         <el-table-column prop="productName" label="商品名称" width="185" align="center" />
         <el-table-column prop="unit" label="单位" width="82" align="center" />
         <el-table-column prop="quantity" label="上货数量" width="154" align="center">
@@ -49,101 +49,115 @@
     <el-dialog 
       title="上货历史记录" 
       :visible.sync="historyDialogVisible" 
-      width="1200px"
+      width="1000px"
+      custom-class="history-dialog"
       :before-close="handleHistoryDialogClose">
       
       <!-- 操作按钮 -->
-      <div class="export-section" style="margin-bottom: 15px; text-align: right;">
-        <el-button 
-          type="danger" 
-          icon="el-icon-delete" 
-          @click="handleBatchDelete"
-          :loading="batchDeleteLoading"
-          :disabled="!selectedHistoryRows.length">
-          批量删除
-        </el-button>
-        <el-button 
-          type="success" 
-          icon="el-icon-download" 
-          @click="exportToExcel"
-          :loading="exportLoading"
-          :disabled="!historyTableData.length"
-          style="margin-left: 10px;">
-          导出Excel
-        </el-button>
-      </div>
-      
-              <!-- 搜索条件 -->
-        <div class="history-search">
-          <el-form :inline="true" :model="historySearchForm" class="search-form">
-            <el-form-item label="商品条码">
-              <el-input 
-                v-model="historySearchForm.barcodeNo" 
-                placeholder="请输入商品条码"
-                clearable
-                style="width: 150px;">
-              </el-input>
-            </el-form-item>
-          <el-form-item label="商品名称">
-            <el-input 
-              v-model="historySearchForm.productName" 
-              placeholder="请输入商品名称"
-              clearable
-              style="width: 150px;">
-            </el-input>
-          </el-form-item>
-          <el-form-item label="操作员">
-            <el-input 
-              v-model="historySearchForm.operatorName" 
-              placeholder="请输入操作员姓名"
-              clearable
-              style="width: 150px;">
-            </el-input>
-          </el-form-item>
-          <el-form-item label="时间范围">
-            <el-date-picker
-              v-model="historySearchForm.timeRange"
-              type="datetimerange"
-              range-separator="至"
-              start-placeholder="开始时间"
-              end-placeholder="结束时间"
-              format="yyyy-MM-dd HH:mm:ss"
-              value-format="yyyy-MM-dd HH:mm:ss"
-              style="width: 300px;">
-            </el-date-picker>
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" @click="handleHistorySearch" icon="el-icon-search">
-              搜索
-            </el-button>
-            <el-button @click="handleHistoryReset" icon="el-icon-refresh">
-              重置
-            </el-button>
-
-          </el-form-item>
-        </el-form>
+      <div class="export-section" style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-start; width: 850px;">
+        <div class="search-section" style="flex: 0 0 700px;">
+          <!-- 搜索条件 -->
+          <div class="history-search">
+            <el-form :inline="true" :model="historySearchForm" class="search-form">
+              <!-- 第一行 -->
+              <div class="search-row" style="display: flex; align-items: center; margin-bottom: 8px;">
+                <el-form-item label="商品条码" style="margin-bottom: 0; margin-right: 15px;">
+                  <el-input 
+                    v-model="historySearchForm.barcodeNo" 
+                    placeholder="请输入商品条码"
+                    clearable
+                    style="width: 120px;">
+                  </el-input>
+                </el-form-item>
+                <el-form-item label="商品名称" style="margin-bottom: 0; margin-right: 15px;">
+                  <el-input 
+                    v-model="historySearchForm.productName" 
+                    placeholder="请输入商品名称"
+                    clearable
+                    style="width: 120px;">
+                  </el-input>
+                </el-form-item>
+                <el-form-item label="操作员" style="margin-bottom: 0; margin-right: 15px;">
+                  <el-input 
+                    v-model="historySearchForm.operatorName" 
+                    placeholder="请输入操作员姓名"
+                    clearable
+                    style="width: 120px;">
+                  </el-input>
+                </el-form-item>
+              </div>
+              <!-- 第二行 -->
+              <div class="search-row" style="display: flex; align-items: center;">
+                <el-form-item label="时间范围" style="margin-bottom: 0; margin-right: 15px;">
+                  <el-date-picker
+                    v-model="historySearchForm.timeRange"
+                    type="datetimerange"
+                    range-separator="至"
+                    start-placeholder="开始时间"
+                    end-placeholder="结束时间"
+                    format="yyyy-MM-dd HH:mm:ss"
+                    value-format="yyyy-MM-dd HH:mm:ss"
+                    style="width: 280px;">
+                  </el-date-picker>
+                </el-form-item>
+                <el-form-item style="margin-bottom: 0; margin-right: 15px;">
+                  <el-button type="primary" @click="handleHistorySearch" icon="el-icon-search">
+                    搜索
+                  </el-button>
+                </el-form-item>
+                <el-form-item style="margin-bottom: 0;">
+                  <el-button @click="handleHistoryReset" icon="el-icon-refresh">
+                    重置
+                  </el-button>
+                </el-form-item>
+              </div>
+            </el-form>
+          </div>
+        </div>
+        
+        <!-- 操作按钮区域 -->
+        <div class="action-buttons" style="display: flex; flex-direction: column; gap: 8px; margin-left: 20px; align-self: flex-start;">
+          <el-button 
+            type="danger" 
+            icon="el-icon-delete" 
+            @click="handleBatchDelete"
+            :loading="batchDeleteLoading"
+            :disabled="!selectedHistoryRows.length"
+            size="small">
+            批量删除
+          </el-button>
+          <el-button 
+            type="success" 
+            icon="el-icon-download" 
+            @click="exportToExcel"
+            :loading="exportLoading"
+            :disabled="!historyTableData.length"
+            size="small">
+            导出Excel
+          </el-button>
+        </div>
       </div>
 
       <!-- 历史记录表格 -->
       <el-table 
         :data="historyTableData" 
-        style="width: 100%" 
+        style="width: 100%; max-height: 400px;" 
         v-loading="historyLoading"
         class="history-table"
         @selection-change="handleHistorySelectionChange">
-        <el-table-column type="selection" width="55" align="center"></el-table-column>
-        <el-table-column prop="barcodeNo" label="商品条码" width="140" align="center"></el-table-column>
+        <el-table-column type="selection" width="50" align="center"></el-table-column>
+        <el-table-column prop="barcodeNo" label="商品条码" width="130" align="center"></el-table-column>
         <el-table-column prop="productName" label="商品名称" width="180" align="center"></el-table-column>
-        <el-table-column prop="unit" label="单位" width="80" align="center"></el-table-column>
-        <el-table-column prop="quantity" label="上货数量" width="100" align="center"></el-table-column>
-        <el-table-column prop="operatorId" label="操作员ID" width="100" align="center"></el-table-column>
+        <el-table-column prop="unit" label="单位" width="70" align="center"></el-table-column>
+        <el-table-column prop="quantity" label="上货数量" width="90" align="center"></el-table-column>
+        <el-table-column prop="operatorId" label="操作员ID" width="90" align="center"></el-table-column>
         <el-table-column prop="operatorName" label="操作员姓名" width="100" align="center"></el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="160" align="center">
+        <el-table-column prop="createTime" label="创建时间" width="150" align="center">
           <template slot-scope="scope">
             {{ formatDateTime(scope.row.createTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120" align="center">
+        <el-table-column label="操作" width="90" align="center">
           <template slot-scope="scope">
             <el-button
               type="danger"
@@ -244,7 +258,7 @@ export default {
         if (!importedData || importedData.length === 0) {
           throw new Error('数据转换后为空')
         }
-        // 根据条码批量查数据库
+        // 根据商品条码批量查数据库
         const results = await Promise.all(importedData.map(item =>
           request({
             url: `/product/barcode/${item.barcode}`,
@@ -267,10 +281,10 @@ export default {
           unit: r.data.unit,
           quantity: r.quantity || 1
         }))
-        // 统计未查到的条码数量（包括接口异常和data为null的情况）
+        // 统计未查到的商品条码数量（包括接口异常和data为null的情况）
         const notFoundResults = results.filter(r => !r.found || !r.data)
         const notFoundCount = notFoundResults.length
-        // 合并到现有表格（相同条码累加数量）
+        // 合并到现有表格（相同商品条码累加数量）
         const barcodeMap = new Map()
         this.tableData.forEach(item => {
           barcodeMap.set(item.barcode, { ...item })
@@ -327,13 +341,14 @@ export default {
     translateField(data) {
       const cnToEn = {
         '流水号': 'serialNo',
+        '商品条码': 'barcode',
         '条码': 'barcode',
         '商品名称': 'productName',
         '单位': 'unit',
         '上货数量': 'quantity'
       }
       
-      // 用于合并相同条码的商品
+      // 用于合并相同商品条码的商品
       const barcodeMap = new Map()
       
       data.forEach((item, index) => {
@@ -349,7 +364,7 @@ export default {
           return
         }
         
-        // 检查是否已存在相同条码的商品
+        // 检查是否已存在相同商品条码的商品
         if (barcodeMap.has(arrItem.barcode)) {
           // 如果存在，增加数量
           const existingItem = barcodeMap.get(arrItem.barcode)
@@ -428,22 +443,42 @@ export default {
     // 保存上货历史记录
     async saveStockHistory() {
       try {
-        // 构建历史记录数据
+        // 构建历史记录数据（只包含必要字段）
         const operatorId = this.userInfo && this.userInfo.employeeId ? this.userInfo.employeeId : 1
-        const operatorName = this.userInfo && this.userInfo.name ? this.userInfo.name : '系统操作员'
-        const historyList = this.tableData.map(item => ({
-          productSerialNo: item.serialNo,
-          barcodeNo: item.barcode,
-          productName: item.productName,
-          unit: item.unit,
-          quantity: item.quantity,
-          operatorId: operatorId, // 用登录人id
-          operatorName: operatorName // 用登录人姓名
-        }))
         
-        // 调用API保存历史记录
-        await batchInsertStockHistory(historyList)
-        console.log('上货历史记录保存成功')
+        // 验证商品是否存在，只保存存在的商品记录
+        const validHistoryList = []
+        
+        for (const item of this.tableData) {
+          try {
+            // 验证商品是否存在
+            const productRes = await request({
+              url: `/product/barcode/${item.barcode}`,
+              method: 'get'
+            })
+            
+            if (productRes && productRes.barcodeNo) {
+              // 商品存在，添加到历史记录列表
+              validHistoryList.push({
+                barcodeNo: item.barcode,
+                quantity: item.quantity,
+                operatorId: operatorId
+              })
+            } else {
+              console.warn(`商品条码 ${item.barcode} 在数据库中不存在，跳过历史记录保存`)
+            }
+          } catch (error) {
+            console.warn(`验证商品条码 ${item.barcode} 时出错，跳过历史记录保存:`, error)
+          }
+        }
+        
+        // 只有当有有效记录时才调用API保存历史记录
+        if (validHistoryList.length > 0) {
+          await batchInsertStockHistory(validHistoryList)
+          console.log(`成功保存 ${validHistoryList.length} 条上货历史记录`)
+        } else {
+          console.warn('没有有效的商品记录需要保存历史')
+        }
       } catch (error) {
         console.error('保存上货历史记录失败:', error)
         // 这里不抛出异常，避免影响主要的上货功能
@@ -542,7 +577,7 @@ export default {
     async handleDeleteHistory(row) {
       try {
         await this.$confirm(
-          `确定要删除这条上货记录吗？\n商品：${row.productName}\n条码：${row.barcodeNo}\n数量：${row.quantity}`,
+          `确定要删除这条上货记录吗？\n商品：${row.productName}\n商品条码：${row.barcodeNo}\n数量：${row.quantity}`,
           '确认删除',
           {
             confirmButtonText: '确定',
@@ -554,7 +589,7 @@ export default {
         // 设置删除加载状态
         this.$set(row, 'deleteLoading', true)
         
-        // 调用删除API
+        // 调用删除API（使用id）
         await deleteStockHistory(row.id)
         
         this.$message.success('删除成功')
@@ -598,7 +633,7 @@ export default {
         
         this.batchDeleteLoading = true
         
-        // 获取选中记录的ID列表
+        // 获取选中记录的id列表
         const ids = this.selectedHistoryRows.map(row => row.id)
         
         // 调用批量删除API
@@ -741,9 +776,17 @@ export default {
 }
 
 /* 历史记录相关样式 */
+.export-section {
+  width: 850px;
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
 .history-search {
-  margin-bottom: 20px;
-  padding: 15px;
+  margin-bottom: 10px;
+  padding: 10px;
   background: #f5f7fa;
   border-radius: 4px;
 }
@@ -752,8 +795,45 @@ export default {
   margin-bottom: 0;
 }
 
+.search-form .el-form-item {
+  margin-bottom: 6px;
+  margin-right: 12px;
+}
+
+.search-section {
+  flex: 0 0 700px;
+  max-width: 700px;
+}
+
+.search-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-row .el-form-item {
+  margin-bottom: 0;
+  margin-right: 15px;
+}
+
+.search-row .el-form-item:last-child {
+  margin-right: 0;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-left: 20px;
+  align-self: flex-start;
+}
+
+.action-buttons .el-button {
+  width: 100px;
+}
+
 .history-table {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .history-table ::v-deep .el-table__header {
@@ -764,11 +844,20 @@ export default {
   background-color: #f5f7fa;
   color: #606266;
   font-weight: 600;
+  padding: 8px 0;
+}
+
+.history-table ::v-deep .el-table__row {
+  height: 40px;
+}
+
+.history-table ::v-deep .el-table__cell {
+  padding: 6px 0;
 }
 
 .history-pagination {
   text-align: right;
-  margin-top: 15px;
+  margin-top: 8px;
 }
 
 .stock-table {
@@ -813,5 +902,142 @@ export default {
 .stock-confirm-btn:hover {
   background: linear-gradient(90deg, #66b1ff 0%, #409eff 100%);
   box-shadow: 0 4px 16px rgba(64,158,255,0.18);
+}
+
+/* 历史记录对话框自定义样式 */
+:global(.history-dialog) {
+  margin-top: 0.5vh !important;
+  max-width: 95vw;
+  max-height: 94vh;
+}
+
+:global(.history-dialog .el-dialog__body) {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+:global(.history-dialog .el-dialog__header) {
+  padding: 12px 12px 6px 12px;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+:global(.history-dialog .el-dialog__title) {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+}
+
+:global(.history-dialog .el-dialog__footer) {
+  padding: 6px 12px 12px 12px;
+  border-top: 1px solid #e4e7ed;
+}
+
+/* 确保对话框不会超出屏幕 */
+:global(.history-dialog .el-dialog) {
+  display: flex;
+  flex-direction: column;
+  max-height: 94vh;
+}
+
+:global(.history-dialog .el-dialog__body) {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+:global(.history-dialog .history-table) {
+  flex: 1;
+  overflow: auto;
+}
+
+/* 表格滚动条样式 */
+:global(.history-dialog .el-table__body-wrapper::-webkit-scrollbar) {
+  width: 6px;
+}
+
+:global(.history-dialog .el-table__body-wrapper::-webkit-scrollbar-track) {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+:global(.history-dialog .el-table__body-wrapper::-webkit-scrollbar-thumb) {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+:global(.history-dialog .el-table__body-wrapper::-webkit-scrollbar-thumb:hover) {
+  background: #a8a8a8;
+}
+
+/* 响应式设计 */
+@media (max-width: 1400px) {
+  :global(.history-dialog) {
+    width: 95vw !important;
+    margin: 0.5vh auto !important;
+  }
+  
+  :global(.history-dialog .el-dialog__body) {
+    max-height: 65vh;
+    padding: 10px;
+  }
+  
+  .export-section {
+    width: 100%;
+  }
+  
+  .search-section {
+    flex: 0 0 600px;
+    max-width: 600px;
+  }
+  
+  .search-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .search-row .el-form-item {
+    margin-bottom: 8px;
+    margin-right: 0;
+  }
+  
+  .action-buttons {
+    margin-left: 0;
+    margin-top: 10px;
+    flex-direction: row;
+    gap: 10px;
+  }
+  
+  .action-buttons .el-button {
+    width: auto;
+  }
+}
+
+@media (max-width: 1200px) {
+  :global(.history-dialog) {
+    width: 98vw !important;
+    margin: 0.2vh auto !important;
+  }
+  
+  :global(.history-dialog .el-dialog__body) {
+    max-height: 70vh;
+    padding: 8px;
+  }
+  
+  .export-section {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .search-section {
+    flex: none;
+    max-width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  .action-buttons {
+    align-self: flex-end;
+  }
 }
 </style>

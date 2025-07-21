@@ -16,7 +16,8 @@ const getDefaultState = () => {
     name: savedUserInfo ? savedUserInfo.name : '',
     avatar: savedUserInfo ? savedUserInfo.avatar : '',
     employeeId: employeeId,
-    photo: savedUserInfo ? savedUserInfo.photo : ''
+    photo: savedUserInfo ? savedUserInfo.photo : '',
+    operatorLevel: savedUserInfo ? savedUserInfo.operatorLevel : null
   }
   console.log('getDefaultState - 返回的状态:', state)
   return state
@@ -35,6 +36,7 @@ const mutations = {
     state.avatar = ''
     state.employeeId = ''
     state.photo = ''
+    state.operatorLevel = null
   },
   SET_TOKEN: (state, token) => {
     state.token = token
@@ -50,6 +52,9 @@ const mutations = {
   },
   SET_PHOTO: (state, photo) => {
     state.photo = photo
+  },
+  SET_OPERATOR_LEVEL: (state, operatorLevel) => {
+    state.operatorLevel = operatorLevel
   }
 }
 
@@ -59,15 +64,33 @@ const actions = {
     const { username, password } = userInfo
     console.log('=== 用户状态管理 - 开始登录 ===')
     console.log('登录参数:', { username: username.trim(), password: password })
-    return new Promise((resolve, reject) => {
-      login({ username: username.trim(), password: password }).then(response => {
+    
+    // 确保返回Promise
+    const loginPromise = new Promise((resolve, reject) => {
+      console.log('=== 创建登录Promise ===')
+      
+      const apiCall = login({ username: username.trim(), password: password })
+      console.log('=== API调用对象 ===', apiCall)
+      console.log('=== API调用类型 ===', typeof apiCall)
+      console.log('=== API调用是否有then方法 ===', apiCall && typeof apiCall.then === 'function')
+      
+      if (!apiCall || typeof apiCall.then !== 'function') {
+        console.error('=== API调用不是Promise ===', apiCall)
+        reject(new Error('API调用失败：返回的不是Promise对象'))
+        return
+      }
+      
+      apiCall.then(response => {
+        console.log('=== API调用成功 ===', response)
         //获取token和用户信息
         // 响应拦截器已经返回了 res.data，所以这里直接使用 response
-        const { token, employeeId, name, photo } = response
+        const { token, employeeId, name, photo, operatorLevel } = response
         console.log('登录响应原始数据:', response)
         console.log('登录响应employeeId类型:', typeof employeeId, employeeId)
+        console.log('登录响应operatorLevel:', operatorLevel)
 
         //存储token
+        console.log('登录成功 - 存储token:', token)
         commit('SET_TOKEN', token)
         setToken(token)
         
@@ -79,7 +102,8 @@ const actions = {
           employeeId: employeeIdStr, 
           name: name || '', 
           photo: photo || '', 
-          avatar: '' 
+          avatar: '',
+          operatorLevel: operatorLevel || null
         }
         console.log('登录时保存的用户信息:', userInfoToSave)
         console.log('登录时保存的用户信息类型:', typeof userInfoToSave.employeeId)
@@ -91,15 +115,23 @@ const actions = {
         commit('SET_EMPLOYEE_ID', employeeIdStr)
         commit('SET_NAME', name)
         commit('SET_PHOTO', photo)
+        commit('SET_OPERATOR_LEVEL', operatorLevel)
+        
+        // 验证token是否正确保存
+        console.log('登录后Cookie中的token:', getToken())
         
         console.log('登录后Vuex状态:', { employeeId: employeeIdStr, name, photo })
         console.log('=== 用户状态管理 - 登录成功，准备resolve ===')
         resolve(response)
       
       }).catch(error => {
+        console.error('=== API调用失败 ===', error)
         reject(error)
       })
     })
+    
+    console.log('=== 返回登录Promise ===', loginPromise)
+    return loginPromise
   },
 
   // get user info

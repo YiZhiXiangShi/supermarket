@@ -3,18 +3,32 @@
     <el-card>
       <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
         <span style="font-size: 18px; font-weight: bold;">活动商品管理</span>
-        <el-button type="primary" @click="openDialog()">新增活动</el-button>
+        <div style="display: flex; align-items: center;">
+          <el-input v-model="searchBarcode" placeholder="输入条形码搜索活动" size="small" style="width: 200px; margin-right: 8px;" @keyup.enter.native="handleSearch" />
+          <el-button type="primary" size="small" @click="handleSearch">搜索</el-button>
+          <el-button type="default" size="small" @click="resetSearch" style="margin-left: 4px;">重置</el-button>
+          <el-button type="primary" @click="openDialog()" style="margin-left: 8px;">新增活动</el-button>
+        </div>
       </div>
       <el-table :data="list" border stripe style="width: 100%">
         <el-table-column prop="detailId" label="ID" width="80" />
-        <el-table-column prop="productSerialNo" label="商品编号" />
-        <el-table-column prop="promotionTypeId" label="活动类型ID" />
-        <el-table-column prop="discount" label="折扣" />
-        <el-table-column prop="startTime" label="开始时间" />
-        <el-table-column prop="endTime" label="结束时间" />
-        <el-table-column prop="status" label="状态" />
+        <el-table-column label="商品信息" width="200">
+          <template #default="scope">
+            {{ scope.row.productSerialNo }} - {{ scope.row.productName || '未知商品' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="活动类型" width="200">
+          <template #default="scope">
+            {{ scope.row.promotionTypeId }} - {{ scope.row.promotionTypeName || '未知类型' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="discount" label="折扣" width="80" />
+        <el-table-column prop="promotionPrice" label="折后价格" width="120" />
+        <el-table-column prop="startTime" label="开始时间" width="160" />
+        <el-table-column prop="endTime" label="结束时间" width="160" />
+        <el-table-column prop="status" label="状态" width="80" />
         <el-table-column prop="remark" label="备注" />
-        <el-table-column prop="barcode" label="条形码" />
+        <el-table-column prop="barcode" label="条形码" width="120" />
         <el-table-column label="操作" width="280">
           <template #default="scope">
             <el-button size="mini" @click="openDialog(scope.row)">编辑</el-button>
@@ -61,6 +75,9 @@
         </el-form-item>
         <el-form-item label="折扣" prop="discount">
           <el-input v-model="form.discount" />
+        </el-form-item>
+        <el-form-item label="折扣后价格">
+          <el-input v-model="form.promotionPrice" disabled placeholder="自动计算" />
         </el-form-item>
         <el-form-item label="开始时间" prop="startTime">
           <el-date-picker v-model="form.startTime" type="datetime" placeholder="选择开始时间" style="width: 100%;" />
@@ -129,7 +146,8 @@ export default {
           { validator: this.validateEndTime, trigger: 'change' }
         ],
         status: [{ required: true, message: '请选择状态', trigger: 'change' }]
-      }
+      },
+      searchBarcode: '' // @新增 搜索条形码
     }
   },
   mounted() {
@@ -138,9 +156,27 @@ export default {
     this.getPromotionTypes()
   },
   methods: {
-    async getList() {
-      const res = await fetchPromotionProducts()
+    async getList(barcode) {
+      // @支持传入barcode参数进行搜索
+      let res
+      if (barcode) {
+        // 假设后端支持 /api/promotion-products?barcode=xxx
+        res = await fetchPromotionProducts({ barcode })
+      } else {
+        res = await fetchPromotionProducts()
+      }
       this.list = res || []
+    },
+    handleSearch() {
+      if (!this.searchBarcode) {
+        this.$message.warning('请输入条形码')
+        return
+      }
+      this.getList(this.searchBarcode)
+    },
+    resetSearch() {
+      this.searchBarcode = ''
+      this.getList()
     },
     async getProducts() {
       const res = await fetchProductList()

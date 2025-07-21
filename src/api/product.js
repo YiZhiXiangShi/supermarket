@@ -39,8 +39,21 @@ export function updateProduct(data) {
 
 // 删除商品
 export function deleteProduct(serialNo) {
+  console.log('删除商品，serialNo:', serialNo)
+  console.log('请求配置:', {
+    url: `/product/delete/${serialNo}`,
+    method: 'delete',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
+  })
   return request({
     url: `/product/delete/${serialNo}`,
-    method: 'delete'
+    method: 'delete',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
   })
 } 

@@ -10,7 +10,7 @@ export function sendSms(phone) {
 
 export function login(data) {
   return request({
-    url: '/api/user/login',
+    url: '/user/login',
     method: 'post',
     data
   })

@@ -69,10 +69,16 @@ export const constantRoutes = [
     meta: { title: '销售管理', icon: 'el-icon-sold-out' },
     children: [
       {
-        path: 'list',
-        name: 'sale-list',
+        path: 'type',
+        name: 'promotion-type-list',
         component: () => import('@/views/sale/index'),
-        meta: { title: '销售管理', icon: 'el-icon-sold-out' }
+        meta: { title: '销售报表管理' }
+      },
+      {
+        path: 'product',
+        name: 'promotion-product-list',
+        component: () => import('@/views/order/index.vue'),
+        meta: { title: '销售订单管理' }
       }
     ]
   },

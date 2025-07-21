@@ -20,8 +20,15 @@ service.interceptors.request.use(
       params: config.params
     })
 
-    if (store.getters.token) {
-      config.headers['token'] = getToken()
+    // 从store或cookie获取token
+    const token = store.getters.token || getToken()
+    console.log('请求拦截器 - 获取到的token:', token)
+    
+    if (token) {
+      config.headers['token'] = token
+      console.log('请求拦截器 - 设置token到请求头:', token)
+    } else {
+      console.log('请求拦截器 - 未找到token')
     }
     return config
   },
@@ -39,6 +46,7 @@ service.interceptors.response.use(
     }
     
     const res = response.data
+    console.log('响应拦截器 - 原始响应:', res)
     
     // 处理业务错误码 - 只有当响应包含code字段时才进行错误检查
     if (res && typeof res.code !== 'undefined') {
@@ -53,16 +61,23 @@ service.interceptors.response.use(
       }
     }
     
-    // 保留 token 处理逻辑，但增加条件判断
-    const { token } = res || {}
-    if (token) {
+    // 处理token - 从data字段中提取token
+    if (res && res.data && res.data.token) {
+      const token = res.data.token
       console.log(`Token 更新: ${token}`)
       setToken(token)           // 存储到 Cookie
       store.commit('user/SET_TOKEN', token)  // 存储到 Vuex
     }
     
-    // 根据后端返回结构决定返回 res 还是 res.data
-    return res
+    // 对于分页数据，返回包含data和count的对象
+    if (res && typeof res.count !== 'undefined') {
+      return {
+        data: res.data,
+        count: res.count
+      }
+    }
+    // 对于普通数据，返回data字段
+    return res.data || res
   },
   error => {
     console.log('err' + error)

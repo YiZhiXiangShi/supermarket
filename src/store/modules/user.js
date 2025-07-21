@@ -16,7 +16,8 @@ const getDefaultState = () => {
     name: savedUserInfo ? savedUserInfo.name : '',
     avatar: savedUserInfo ? savedUserInfo.avatar : '',
     employeeId: employeeId,
-    photo: savedUserInfo ? savedUserInfo.photo : ''
+    photo: savedUserInfo ? savedUserInfo.photo : '',
+    operatorLevel: savedUserInfo ? savedUserInfo.operatorLevel : null
   }
   console.log('getDefaultState - 返回的状态:', state)
   return state
@@ -35,6 +36,7 @@ const mutations = {
     state.avatar = ''
     state.employeeId = ''
     state.photo = ''
+    state.operatorLevel = null
   },
   SET_TOKEN: (state, token) => {
     state.token = token
@@ -50,6 +52,9 @@ const mutations = {
   },
   SET_PHOTO: (state, photo) => {
     state.photo = photo
+  },
+  SET_OPERATOR_LEVEL: (state, operatorLevel) => {
+    state.operatorLevel = operatorLevel
   }
 }
 
@@ -63,11 +68,13 @@ const actions = {
       login({ username: username.trim(), password: password }).then(response => {
         //获取token和用户信息
         // 响应拦截器已经返回了 res.data，所以这里直接使用 response
-        const { token, employeeId, name, photo } = response
+        const { token, employeeId, name, photo, operatorLevel } = response
         console.log('登录响应原始数据:', response)
         console.log('登录响应employeeId类型:', typeof employeeId, employeeId)
+        console.log('登录响应operatorLevel:', operatorLevel)
 
         //存储token
+        console.log('登录成功 - 存储token:', token)
         commit('SET_TOKEN', token)
         setToken(token)
         
@@ -79,7 +86,8 @@ const actions = {
           employeeId: employeeIdStr, 
           name: name || '', 
           photo: photo || '', 
-          avatar: '' 
+          avatar: '',
+          operatorLevel: operatorLevel || null
         }
         console.log('登录时保存的用户信息:', userInfoToSave)
         console.log('登录时保存的用户信息类型:', typeof userInfoToSave.employeeId)
@@ -91,6 +99,10 @@ const actions = {
         commit('SET_EMPLOYEE_ID', employeeIdStr)
         commit('SET_NAME', name)
         commit('SET_PHOTO', photo)
+        commit('SET_OPERATOR_LEVEL', operatorLevel)
+        
+        // 验证token是否正确保存
+        console.log('登录后Cookie中的token:', getToken())
         
         console.log('登录后Vuex状态:', { employeeId: employeeIdStr, name, photo })
         console.log('=== 用户状态管理 - 登录成功，准备resolve ===')

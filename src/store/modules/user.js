@@ -74,6 +74,7 @@ const actions = {
         console.log('登录响应operatorLevel:', operatorLevel)
 
         //存储token
+        console.log('登录成功 - 存储token:', token)
         commit('SET_TOKEN', token)
         setToken(token)
         
@@ -99,6 +100,9 @@ const actions = {
         commit('SET_NAME', name)
         commit('SET_PHOTO', photo)
         commit('SET_OPERATOR_LEVEL', operatorLevel)
+        
+        // 验证token是否正确保存
+        console.log('登录后Cookie中的token:', getToken())
         
         console.log('登录后Vuex状态:', { employeeId: employeeIdStr, name, photo })
         console.log('=== 用户状态管理 - 登录成功，准备resolve ===')

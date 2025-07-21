@@ -290,19 +290,24 @@ export default {
           pageNo: this.pagination.pageNo,
           pageSize: this.pagination.pageSize
         }
+        console.log('发送商品查询参数:', params)
         const res = await fetchProductList(params)
         console.log('商品接口返回：', res)
         
+        // 响应拦截器返回包含data和count的对象
         if (res && res.data) {
           this.tableData = res.data
           this.pagination.total = res.count || 0
+          console.log('设置表格数据:', this.tableData)
+          console.log('设置总数:', this.pagination.total)
         } else {
           this.tableData = []
           this.pagination.total = 0
+          console.log('没有数据，清空表格')
         }
       } catch (e) {
         this.$message.error('获取商品列表失败')
-        console.error(e)
+        console.error('商品列表加载错误:', e)
       } finally {
         this.loading = false
       }

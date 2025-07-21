@@ -103,7 +103,13 @@ export default {
       })
     },
     handleLogin() {
+      console.log('=== 点击登录按钮 ===')
+      console.log('表单数据:', this.loginForm)
+      console.log('表单引用:', this.$refs.loginForm)
+      
       this.$refs.loginForm.validate(valid => {
+        console.log('=== 表单验证结果 ===', valid)
+        
         if (valid) {
           this.loading = true
           console.log('=== 登录流程开始 ===')
@@ -111,8 +117,9 @@ export default {
           console.log('重定向路径:', this.redirect)
           
           //向后端发起登录请求  1.请求路径   2.提交参数用户名和密码
-          this.$store.dispatch('user/login', this.loginForm).then(() => {
+          this.$store.dispatch('user/login', this.loginForm).then((response) => {
             console.log('=== 登录成功，准备跳转 ===')
+            console.log('登录响应:', response)
             console.log('当前Vuex状态:', this.$store.state.user)
             console.log('跳转目标路径:', this.redirect || '/')
             
@@ -125,10 +132,12 @@ export default {
             })
           }).catch((error) => {
             console.error('=== 登录失败 ===', error)
+            console.error('错误详情:', error.message || error)
             this.loading = false
           })
         } else {
           console.log('表单验证失败')
+          console.log('表单错误信息:', this.$refs.loginForm.fields)
           return false
         }
       })

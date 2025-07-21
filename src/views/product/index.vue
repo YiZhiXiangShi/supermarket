@@ -17,8 +17,8 @@
         <el-form-item label="一级种类">
           <el-select v-model="searchForm.firstLevelCategory" placeholder="请选择一级种类" clearable>
             <el-option label="食品" value="1"></el-option>
-                  <el-option label="饮料" value="2"></el-option>
-                  <el-option label="日用品" value="3"></el-option>
+            <el-option label="饮料" value="2"></el-option>
+            <el-option label="日用品" value="3"></el-option>
             <!-- 根据实际种类添加 -->
           </el-select>
         </el-form-item>
@@ -153,9 +153,10 @@
             <el-col :span="12">
               <el-form-item label="一级种类" prop="firstLevelCategory">
                 <el-select v-model="form.firstCategoryName" placeholder="请选择一级种类" style="width: 100%">
-                  <el-option label="食品" value="1"></el-option>
+                  <!--<el-option label="食品" value="1"></el-option>
                   <el-option label="饮料" value="2"></el-option>
-                  <el-option label="日用品" value="3"></el-option>
+                  <el-option label="日用品" value="3"></el-option>-->
+                  <el-option v-for="employee in employeeList" :key="employee.employeeId" :label="employee.name" :value="employee.employeeId"></el-option>
                   <!-- 根据实际种类添加 -->
                 </el-select>
               </el-form-item>
@@ -188,6 +189,7 @@
 
 <script>
 import { fetchProductList, addProduct, updateProduct, deleteProduct } from '@/api/product'
+import employeeApi from '@/api/employee'
 
 export default {
   data() {
@@ -198,6 +200,7 @@ export default {
       dialogVisible: false,
       dialogTitle: '新增商品',
       isEdit: false,
+      employeeList:[],
       
       // 搜索表单
       searchForm: {
@@ -278,7 +281,8 @@ export default {
     }
   },
   mounted() {
-    this.loadProducts()
+    this.loadProducts(),
+    this.getEmployeeList()
   },
   methods: {
     // 加载商品列表
@@ -306,6 +310,12 @@ export default {
       } finally {
         this.loading = false
       }
+    },
+    // 加载员工所有信息
+    getEmployeeList(){
+      employeeApi.findAll().then(response=>{
+        this.employeeList=response.data
+      })
     },
     
     // 搜索

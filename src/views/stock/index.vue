@@ -266,8 +266,8 @@ export default {
           }).then(res => {
             console.log('查商品结果:', res)
             return {
-              found: !!(res && res.barcodeNo),
-              data: res,
+              found: !!(res && res.data && res.data.barcodeNo),
+              data: res.data,
               quantity: item.quantity,
               barcode: item.barcode
             }
@@ -297,6 +297,7 @@ export default {
           }
         })
         this.tableData = Array.from(barcodeMap.values())
+        console.log('tableData:', this.tableData)
         // 统一提示
         let msg = `成功导入 ${validRows.length} 条商品`
         if (notFoundCount > 0) {
@@ -388,21 +389,23 @@ export default {
           method: 'get'
         })
         console.log('接口响应:', res)
-        if (res) {
-          const existIndex = this.tableData.findIndex(item => item.barcode === res.barcodeNo)
+        if (res && res.data) {
+          const existIndex = this.tableData.findIndex(item => item.barcode === res.data.barcodeNo)
           if (existIndex === -1) {
             // 商品不存在，添加新行
             this.tableData.push({
-              serialNo: res.serialNo,
-              barcode: res.barcodeNo,
-              productName: res.productName,
-              unit: res.unit,
+              serialNo: res.data.serialNo,
+              barcode: res.data.barcodeNo,
+              productName: res.data.productName,
+              unit: res.data.unit,
               quantity: 1
             })
+            console.log('tableData:', this.tableData)
             this.$message.success('商品已添加到表格')
           } else {
             // 商品已存在，增加数量
             this.tableData[existIndex].quantity += 1
+            console.log('tableData:', this.tableData)
             this.$message.success(`商品数量已增加，当前数量：${this.tableData[existIndex].quantity}`)
           }
         } else {
@@ -435,6 +438,7 @@ export default {
         this.$message.success('库存更新成功')
         this.tableData = []
         this.barcode = ''
+        console.log('tableData:', this.tableData)
       } catch (e) {
         this.$message.error('库存更新失败')
       }
@@ -457,7 +461,7 @@ export default {
               method: 'get'
             })
             
-            if (productRes && productRes.barcodeNo) {
+            if (productRes && productRes.data && productRes.data.barcodeNo) {
               // 商品存在，添加到历史记录列表
               validHistoryList.push({
                 barcodeNo: item.barcode,

@@ -68,5 +68,12 @@ export default {
             url: `${api_name}/check/${employeeId}`,
             method: 'get'
         })
+    },
+    // 查询所有
+    findAll(){
+        return request({
+            url:`${api_name}/list`,
+            method:'get'
+        })
     }
 }

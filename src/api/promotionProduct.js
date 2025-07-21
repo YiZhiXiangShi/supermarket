@@ -2,11 +2,12 @@ import request from '@/utils/request'
 
 const baseUrl = '/api/promotion-products'
 
-// 查询所有活动
-export function fetchPromotionProducts() {
+// 查询所有活动，支持可选params参数
+export function fetchPromotionProducts(params) {
   return request({
     url: baseUrl,
-    method: 'get'
+    method: 'get',
+    params // 关键：这样barcode等参数才能拼到URL
   })
 }
 

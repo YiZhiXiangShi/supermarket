@@ -48,7 +48,7 @@ service.interceptors.response.use(
     const res = response.data
     console.log('响应拦截器 - 原始响应:', res)
     
-    // 处理业务错误码 - 只有当响应包含code字段时才进行错误检查
+    // 处理业务错误码 - 检查Result类的响应格式
     if (res && typeof res.code !== 'undefined') {
       if (res.code !== 0 && res.code !== 200) {
         const errorMessage = res.msg || res.message || 'Error'
@@ -76,7 +76,13 @@ service.interceptors.response.use(
         count: res.count
       }
     }
-    // 对于普通数据，返回data字段
+    
+    // 对于Result类的响应，返回data字段
+    if (res && typeof res.code !== 'undefined') {
+      return res.data
+    }
+    
+    // 对于普通数据，返回data字段或完整响应
     return res.data || res
   },
   error => {

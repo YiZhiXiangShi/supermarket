@@ -17,8 +17,8 @@
         <el-form-item label="一级种类">
           <el-select v-model="searchForm.firstLevelCategory" placeholder="请选择一级种类" clearable>
             <el-option label="食品" value="1"></el-option>
-                  <el-option label="饮料" value="2"></el-option>
-                  <el-option label="日用品" value="3"></el-option>
+            <el-option label="饮料" value="2"></el-option>
+            <el-option label="日用品" value="3"></el-option>
             <!-- 根据实际种类添加 -->
           </el-select>
         </el-form-item>
@@ -143,10 +143,8 @@
             <el-col :span="12">
               <el-form-item label="操作人" prop="operatorName">
                 <el-select v-model="form.operatorName" placeholder="请选择操作人姓名" style="width: 100%">
-                  <el-option label="张三" value="1"></el-option>
-                  <el-option label="李四" value="2"></el-option>
-                  <el-option label="王五" value="3"></el-option>
-                  <el-option label="赵六" value="4"></el-option>
+                  <el-option v-for="employee in employeeList" :key="employee.employeeId" 
+                  :label="employee.name" :value="employee.employeeId"></el-option>
                 </el-select>
               </el-form-item>
             </el-col>
@@ -188,6 +186,7 @@
 
 <script>
 import { fetchProductList, addProduct, updateProduct, deleteProduct } from '@/api/product'
+import employeeApi from '@/api/employee'
 
 export default {
   data() {
@@ -198,6 +197,7 @@ export default {
       dialogVisible: false,
       dialogTitle: '新增商品',
       isEdit: false,
+      employeeList:[],
       
       // 搜索表单
       searchForm: {
@@ -278,7 +278,8 @@ export default {
     }
   },
   mounted() {
-    this.loadProducts()
+    this.loadProducts(),
+    this.getEmployeeList()
   },
   methods: {
     // 加载商品列表
@@ -311,6 +312,13 @@ export default {
       } finally {
         this.loading = false
       }
+    },
+    // 加载员工所有信息
+    getEmployeeList(){
+      employeeApi.findAll().then(response=>{
+        console.log("员工返回信息：",response)
+        this.employeeList=response
+      })
     },
     
     // 搜索

@@ -64,8 +64,24 @@ const actions = {
     const { username, password } = userInfo
     console.log('=== 用户状态管理 - 开始登录 ===')
     console.log('登录参数:', { username: username.trim(), password: password })
-    return new Promise((resolve, reject) => {
-      login({ username: username.trim(), password: password }).then(response => {
+    
+    // 确保返回Promise
+    const loginPromise = new Promise((resolve, reject) => {
+      console.log('=== 创建登录Promise ===')
+      
+      const apiCall = login({ username: username.trim(), password: password })
+      console.log('=== API调用对象 ===', apiCall)
+      console.log('=== API调用类型 ===', typeof apiCall)
+      console.log('=== API调用是否有then方法 ===', apiCall && typeof apiCall.then === 'function')
+      
+      if (!apiCall || typeof apiCall.then !== 'function') {
+        console.error('=== API调用不是Promise ===', apiCall)
+        reject(new Error('API调用失败：返回的不是Promise对象'))
+        return
+      }
+      
+      apiCall.then(response => {
+        console.log('=== API调用成功 ===', response)
         //获取token和用户信息
         // 响应拦截器已经返回了 res.data，所以这里直接使用 response
         const { token, employeeId, name, photo, operatorLevel } = response
@@ -109,9 +125,13 @@ const actions = {
         resolve(response)
       
       }).catch(error => {
+        console.error('=== API调用失败 ===', error)
         reject(error)
       })
     })
+    
+    console.log('=== 返回登录Promise ===', loginPromise)
+    return loginPromise
   },
 
   // get user info
